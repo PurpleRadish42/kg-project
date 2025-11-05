@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Query - Knowledge Graph AI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-question-circle me-2"></i>Query Knowledge Graph</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Ask questions about the information stored in the knowledge graph. 
+                    The system will reason over the graph data to provide accurate answers.
+                </p>
+                
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="question" class="form-label">Your Question</label>
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            id="question" 
+                            name="question" 
+                            placeholder="e.g., Where are my car keys?"
+                            value="{% if question %}{{ question }}{% endif %}"
+                            required
+                        >
+                        <div class="form-text">
+                            Ask questions like "Where is X?", "What's in Y?", "Who owns Z?", etc.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-search me-1"></i>Ask Question
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if answer %}
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-comment-dots me-2"></i>Answer</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Question:</strong> {{ question }}
+                </div>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>{{ answer }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Example Questions</h5>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>"Where are my car keys?"</li>
+                    <li>"Where is the coffee maker?"</li>
+                    <li>"What's in the bedroom closet?"</li>
+                    <li>"What items are on the kitchen counter?"</li>
+                    <li>"Who installed the key hook?"</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

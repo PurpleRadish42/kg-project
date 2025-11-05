@@ -1,55 +1,28 @@
-#!/usr/bin/env python3
 """
-Knowledge Graph System for Context-Aware AI
-Extracts information from natural language and stores it in Neo4j
+Knowledge Graph Service
+Handles knowledge extraction, storage, and querying
 """
 
-import os
 import json
 from datetime import datetime
-from typing import List, Dict, Any
-from neo4j import GraphDatabase
+from typing import Dict, Any, List
 from openai import OpenAI
-from dotenv import load_dotenv
+from flask import current_app
+from app.services.neo4j_service import get_neo4j_service
 
-# Load environment variables
-load_dotenv()
 
-class KnowledgeGraphSystem:
+class KnowledgeGraphService:
+    """Service for knowledge graph operations"""
+    
     def __init__(self):
-        """Initialize the Knowledge Graph System with Neo4j and OpenAI connections"""
-        # Neo4j connection
-        neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
-        neo4j_user = os.getenv("NEO4J_USER", "neo4j")
-        neo4j_password = os.getenv("NEO4J_PASSWORD", "password")
-        
-        self.driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
-        
-        # OpenAI connection
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = "gpt-4o-mini"  # Using gpt-4o-mini (efficient and capable)
-        
-        # Initialize the database schema
-        self._init_database()
+        """Initialize the Knowledge Graph Service"""
+        self.neo4j = get_neo4j_service()
+        self.client = OpenAI(api_key=current_app.config["OPENAI_API_KEY"])
+        self.model = current_app.config["OPENAI_MODEL"]
     
-    def _init_database(self):
-        """Initialize database with constraints and indexes"""
-        with self.driver.session() as session:
-            # Create constraints for unique entities
-            session.run("""
-                CREATE CONSTRAINT entity_name IF NOT EXISTS
-                FOR (e:Entity) REQUIRE e.name IS UNIQUE
-            """)
-            
-            # Create indexes for better query performance
-            session.run("""
-                CREATE INDEX entity_type IF NOT EXISTS
-                FOR (e:Entity) ON (e.type)
-            """)
-    
-    def extract_knowledge(self, text: str) -> List[Dict[str, Any]]:
+    def extract_knowledge(self, text: str) -> Dict[str, Any]:
         """
-        Extract entities, relationships, and temporal information from text using GPT-4o-mini
+        Extract entities, relationships, and temporal information from text using GPT
         """
         prompt = f"""You are an expert at extracting structured information from natural language text to build a knowledge graph.
 
@@ -124,7 +97,7 @@ Return ONLY the JSON object, no additional text."""
         """
         Store extracted knowledge in Neo4j with temporal and provenance metadata
         """
-        with self.driver.session() as session:
+        with self.neo4j.get_session() as session:
             # Store provenance
             timestamp = datetime.now().isoformat()
             
@@ -174,8 +147,8 @@ Return ONLY the JSON object, no additional text."""
         """
         Answer a question by querying the knowledge graph
         """
-        # First, get relevant information from Neo4j
-        with self.driver.session() as session:
+        # Get relevant information from Neo4j
+        with self.neo4j.get_session() as session:
             # Get all entities and direct relationships
             result = session.run("""
                 MATCH (e:Entity)
@@ -203,7 +176,6 @@ Return ONLY the JSON object, no additional text."""
                 })
             
             # Also get nested/transitive relationships (2-3 hops)
-            # This helps answer questions like "What's in the bedroom closet?"
             result = session.run("""
                 MATCH path = (item:Entity)-[r1:RELATES*1..3]->(location:Entity)
                 WHERE location.type = 'Location'
@@ -266,81 +238,35 @@ Answer:"""
         
         return response.choices[0].message.content.strip()
     
-    def clear_database(self):
-        """Clear all data from the database (useful for testing)"""
-        with self.driver.session() as session:
-            session.run("MATCH (n) DETACH DELETE n")
+    def get_all_entities(self) -> List[Dict]:
+        """Get all entities from the knowledge graph"""
+        with self.neo4j.get_session() as session:
+            result = session.run("""
+                MATCH (e:Entity)
+                RETURN e.name AS name, e.type AS type, properties(e) AS properties
+                ORDER BY e.type, e.name
+            """)
+            return [{"name": record["name"], "type": record["type"], "properties": record["properties"]} 
+                    for record in result]
     
-    def close(self):
-        """Close the Neo4j driver connection"""
-        self.driver.close()
+    def get_all_relationships(self) -> List[Dict]:
+        """Get all relationships from the knowledge graph"""
+        with self.neo4j.get_session() as session:
+            result = session.run("""
+                MATCH (source:Entity)-[r:RELATES]->(target:Entity)
+                RETURN source.name AS source,
+                       r.type AS rel_type,
+                       target.name AS target,
+                       r.timestamp AS timestamp,
+                       properties(r) AS properties
+                ORDER BY r.timestamp DESC
+            """)
+            return [{
+                "source": record["source"],
+                "type": record["rel_type"],
+                "target": record["target"],
+                "timestamp": record["timestamp"],
+                "properties": record["properties"]
+            } for record in result]
 
-
-def main():
-    """Main function to test the system"""
-    
-    # Initialize the system
-    print("Initializing Knowledge Graph System...")
-    kg = KnowledgeGraphSystem()
-    
-    # Clear existing data for fresh start
-    print("Clearing existing data...")
-    kg.clear_database()
-    
-    # Test paragraph
-    paragraph = """On Monday morning, I placed my car keys on the kitchen counter next to the coffee maker. Later that afternoon, my roommate moved them to the key hook by the front door because he needed to use the car. The coffee maker is a Breville model that I bought in January 2024, and it's usually kept plugged in on the left side of the counter. My car is a blue Honda Civic parked in the garage, and I typically drive it to work every weekday. The front door key hook was installed by my roommate last month specifically for keeping keys organized. On Tuesday evening, the keys were missing from the hook, and I found them in my roommate's jacket pocket in the bedroom closet."""
-    
-    print("\n" + "="*80)
-    print("PROCESSING TEXT")
-    print("="*80)
-    print(f"\n{paragraph}\n")
-    
-    # Extract and store knowledge
-    print("Extracting knowledge from text...")
-    knowledge = kg.extract_knowledge(paragraph)
-    
-    print(f"\nExtracted {len(knowledge.get('entities', []))} entities and {len(knowledge.get('relationships', []))} relationships")
-    
-    # Show what was extracted
-    print("\n--- ENTITIES EXTRACTED ---")
-    for entity in knowledge.get('entities', []):
-        props = entity.get('properties', {})
-        props_str = f" {props}" if props else ""
-        print(f"  • {entity['name']} ({entity['type']}){props_str}")
-    
-    print("\n--- RELATIONSHIPS EXTRACTED ---")
-    for rel in knowledge.get('relationships', []):
-        timestamp = rel.get('timestamp', 'no timestamp')
-        print(f"  • {rel['source']} --[{rel['type']}]--> {rel['target']} @ {timestamp}")
-    
-    print("\nStoring knowledge in Neo4j...")
-    kg.store_knowledge(knowledge, paragraph)
-    print("✓ Knowledge stored successfully!")
-    
-    # Test questions
-    questions = [
-        "Where are my car keys?",
-        "Where is the coffee maker?",
-        "What's in the bedroom closet?",
-        "What items are on the kitchen counter?"
-    ]
-    
-    print("\n" + "="*80)
-    print("ANSWERING QUESTIONS")
-    print("="*80)
-    
-    for question in questions:
-        print(f"\nQ: {question}")
-        answer = kg.query_knowledge(question)
-        print(f"A: {answer}")
-    
-    # Close connection
-    kg.close()
-    print("\n" + "="*80)
-    print("Done!")
-    print("="*80)
-
-
-if __name__ == "__main__":
-    main()
 
