@@ -4,9 +4,13 @@ A Flask application that extracts knowledge from natural language text using GPT
 
 ## Features
 
-- **Single-page demo interface** with beautiful gradient UI
+- **User Authentication** - Register and login with PostgreSQL
+- **Multi-user Support** - Each user has their own knowledge graph context
+- **Welcome Page** - Beautiful landing page with demo access
+- **Demo Mode** - Try the system without registration (stores as "demo_user")
 - **Automatic knowledge extraction** from natural language text
 - **Neo4j graph storage** with temporal and relationship tracking
+- **User-specific data isolation** - Your data stays separate from others
 - **Intelligent question answering** using the knowledge graph
 - **REST API** for programmatic access
 
@@ -14,6 +18,7 @@ A Flask application that extracts knowledge from natural language text using GPT
 
 - Python 3.13+
 - Neo4j Database (Aura Cloud or local)
+- PostgreSQL Database (for user authentication)
 - OpenAI API key
 
 ## Setup
@@ -50,15 +55,30 @@ The application will start on http://localhost:5000
 
 ## Usage
 
-### Demo Interface
+### Welcome Page
 
-Open http://localhost:5000 in your browser:
+Open http://localhost:5000 in your browser - you'll see a welcome page with options to:
+- **Try Demo** - Test the system without registration (data saved as "demo_user")
+- **Register** - Create your own account for personalized storage
+- **Login** - Access your personal knowledge graph
 
-1. Read the test paragraph about car keys, coffee maker, etc.
-2. Click **"Store Data in Knowledge Graph"**
-3. Wait for the loading animation (3-5 seconds)
-4. Click **"Answer"** on any of the 4 test questions
-5. See the knowledge graph in action!
+### Demo Mode
+
+1. Click "Try Demo" on the welcome page
+2. Read the test paragraph about car keys, coffee maker, etc.
+3. Click **"Store Data in Knowledge Graph"**
+4. Wait for the loading animation (3-5 seconds)
+5. Click **"Answer"** on any of the 4 test questions
+6. See the knowledge graph in action!
+
+**Note:** Demo mode stores data as "demo_user" in Neo4j
+
+### User Accounts
+
+1. **Register** - Create an account with username, email, and password
+2. **Login** - Access your personal knowledge graph
+3. **Your Data** - All your knowledge graph data is isolated by your username
+4. **Try Demo** - You can still access the demo even when logged in
 
 ### REST API
 
