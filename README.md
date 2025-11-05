@@ -23,13 +23,12 @@ A Flask application that extracts knowledge from natural language text using GPT
 Create a `.env` file:
 
 ```bash
-cat > .env << EOF
-OPENAI_API_KEY=your_openai_api_key_here
-NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io
-NEO4J_USERNAME=neo4j
-NEO4J_PASSWORD=your_neo4j_password
-NEO4J_DATABASE=neo4j
-SECRET_KEY=change-this-in-production
+OPENAI_MODEL=gpt-4o-mini                              # Model to use (default)
+NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io # Neo4j Aura URI
+NEO4J_USERNAME=neo4j                                  # Neo4j username
+NEO4J_PASSWORD=your_password                          # Neo4j password
+NEO4J_DATABASE=neo4j                                  # Database name (usually 'neo4j')
+SECRET_KEY=your-secret-key                            # Flask secret key
 EOF
 ```
 
