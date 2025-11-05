@@ -3,6 +3,7 @@ API routes for the Knowledge Graph application
 """
 
 from flask import Blueprint, request, jsonify
+from flask_login import current_user
 from app.services.kg_service import KnowledgeGraphService
 
 bp = Blueprint("api", __name__)
@@ -18,9 +19,12 @@ def add_knowledge():
         return jsonify({"error": "Text is required"}), 400
     
     try:
+        # Use current_user.username if logged in, otherwise demo_user
+        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        
         kg_service = KnowledgeGraphService()
         knowledge = kg_service.extract_knowledge(text)
-        kg_service.store_knowledge(knowledge, text)
+        kg_service.store_knowledge(knowledge, text, user_id=user_id)
         
         return jsonify({
             "success": True,
@@ -42,8 +46,11 @@ def query():
         return jsonify({"error": "Question is required"}), 400
     
     try:
+        # Use current_user.username if logged in, otherwise demo_user
+        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        
         kg_service = KnowledgeGraphService()
-        answer = kg_service.query_knowledge(question)
+        answer = kg_service.query_knowledge(question, user_id=user_id)
         
         return jsonify({
             "success": True,
@@ -58,8 +65,11 @@ def query():
 def get_entities():
     """Get all entities (API endpoint)"""
     try:
+        # Use current_user.username if logged in, otherwise demo_user
+        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        
         kg_service = KnowledgeGraphService()
-        entities = kg_service.get_all_entities()
+        entities = kg_service.get_all_entities(user_id=user_id)
         return jsonify({"success": True, "entities": entities}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -69,8 +79,11 @@ def get_entities():
 def get_relationships():
     """Get all relationships (API endpoint)"""
     try:
+        # Use current_user.username if logged in, otherwise demo_user
+        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        
         kg_service = KnowledgeGraphService()
-        relationships = kg_service.get_all_relationships()
+        relationships = kg_service.get_all_relationships(user_id=user_id)
         return jsonify({"success": True, "relationships": relationships}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500

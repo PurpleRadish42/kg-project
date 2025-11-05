@@ -58,7 +58,9 @@ Return your response as a JSON object with the following structure:
 Important guidelines:
 - Track the CURRENT state of entities (where things ARE now, not just where they were)
 - For temporal changes, create multiple relationships with timestamps
+- **CRITICAL: Extract WHEN events happened** - "bought on Wednesday", "moved on Friday", etc.
 - Include properties like color, model, brand, etc. as entity properties
+- **Add temporal properties to entities**: If something was bought/created/moved at a specific time, add a property like "purchased_on": "Last Wednesday"
 - Be specific about locations (e.g., "kitchen counter", "key hook by front door")
 - Track who did what (e.g., "my roommate moved them")
 - **CRITICAL: Create nested location relationships!** 
@@ -69,6 +71,7 @@ Important guidelines:
 - Use LOCATED_IN for containment (something inside something else)
 - Use CONTAINS for the reverse (a location contains items)
 - Always create BOTH directions when something is inside something else
+- **For actions/events, create relationships with clear timestamps**: "bought on Last Wednesday", "watered on Thursday", etc.
 
 Return ONLY the JSON object, no additional text."""
 
@@ -93,18 +96,19 @@ Return ONLY the JSON object, no additional text."""
         knowledge = json.loads(content.strip())
         return knowledge
     
-    def store_knowledge(self, knowledge: Dict[str, Any], source_text: str):
+    def store_knowledge(self, knowledge: Dict[str, Any], source_text: str, user_id: str = "demo_user"):
         """
         Store extracted knowledge in Neo4j with temporal and provenance metadata
+        User-specific storage using user_id
         """
         with self.neo4j.get_session() as session:
             # Store provenance
             timestamp = datetime.now().isoformat()
             
-            # Create entities
+            # Create entities with user_id
             for entity in knowledge.get("entities", []):
                 session.run("""
-                    MERGE (e:Entity {name: $name})
+                    MERGE (e:Entity {name: $name, user_id: $user_id})
                     SET e.type = $type,
                         e.last_updated = $timestamp,
                         e.source = $source
@@ -113,20 +117,21 @@ Return ONLY the JSON object, no additional text."""
                     SET e[prop.key] = prop.value
                 """, 
                     name=entity["name"],
+                    user_id=user_id,
                     type=entity["type"],
                     timestamp=timestamp,
                     source=source_text[:100] + "...",
                     properties=[{"key": k, "value": v} for k, v in entity.get("properties", {}).items()]
                 )
             
-            # Create relationships
+            # Create relationships with user_id
             for rel in knowledge.get("relationships", []):
                 rel_timestamp = rel.get("timestamp") or timestamp
                 
                 session.run("""
-                    MATCH (source:Entity {name: $source_name})
-                    MATCH (target:Entity {name: $target_name})
-                    MERGE (source)-[r:RELATES {type: $rel_type}]->(target)
+                    MATCH (source:Entity {name: $source_name, user_id: $user_id})
+                    MATCH (target:Entity {name: $target_name, user_id: $user_id})
+                    MERGE (source)-[r:RELATES {type: $rel_type, user_id: $user_id}]->(target)
                     SET r.timestamp = $timestamp,
                         r.created_at = $created_at,
                         r.source = $source
@@ -136,6 +141,7 @@ Return ONLY the JSON object, no additional text."""
                 """,
                     source_name=rel["source"],
                     target_name=rel["target"],
+                    user_id=user_id,
                     rel_type=rel["type"],
                     timestamp=rel_timestamp,
                     created_at=timestamp,
@@ -143,16 +149,17 @@ Return ONLY the JSON object, no additional text."""
                     properties=[{"key": k, "value": v} for k, v in rel.get("properties", {}).items()]
                 )
     
-    def query_knowledge(self, question: str) -> str:
+    def query_knowledge(self, question: str, user_id: str = "demo_user") -> str:
         """
         Answer a question by querying the knowledge graph
+        User-specific querying using user_id
         """
-        # Get relevant information from Neo4j
+        # Get relevant information from Neo4j for this user
         with self.neo4j.get_session() as session:
-            # Get all entities and direct relationships
+            # Get all entities and direct relationships for this user
             result = session.run("""
-                MATCH (e:Entity)
-                OPTIONAL MATCH (e)-[r:RELATES]->(target:Entity)
+                MATCH (e:Entity {user_id: $user_id})
+                OPTIONAL MATCH (e)-[r:RELATES {user_id: $user_id}]->(target:Entity {user_id: $user_id})
                 RETURN e.name AS entity_name, 
                        e.type AS entity_type,
                        properties(e) AS entity_props,
@@ -161,7 +168,7 @@ Return ONLY the JSON object, no additional text."""
                        r.timestamp AS rel_timestamp,
                        properties(r) AS rel_props
                 ORDER BY r.timestamp DESC
-            """)
+            """, user_id=user_id)
             
             graph_data = []
             for record in result:
@@ -175,9 +182,9 @@ Return ONLY the JSON object, no additional text."""
                     "rel_properties": record["rel_props"]
                 })
             
-            # Also get nested/transitive relationships (2-3 hops)
+            # Also get nested/transitive relationships (2-3 hops) for this user
             result = session.run("""
-                MATCH path = (item:Entity)-[r1:RELATES*1..3]->(location:Entity)
+                MATCH path = (item:Entity {user_id: $user_id})-[r1:RELATES*1..3]->(location:Entity {user_id: $user_id})
                 WHERE location.type = 'Location'
                 WITH item, location, path, relationships(path) as rels, 
                      [r in relationships(path) | r.timestamp] as timestamps
@@ -188,7 +195,7 @@ Return ONLY the JSON object, no additional text."""
                        timestamps,
                        length(path) AS hops
                 ORDER BY timestamps[-1] DESC
-            """)
+            """, user_id=user_id)
             
             nested_data = []
             for record in result:
@@ -222,6 +229,10 @@ Instructions:
 - Use both direct_relationships AND nested_relationships to find answers
 - For "What's in X?" questions, look for items that have X as their location (directly or nested)
 - For "Where is X?" questions, find the most recent location of X
+- **For "When did X happen?" questions**: Look for timestamps in relationships AND entity properties
+- **Check entity properties** for temporal information like "purchased_on", "created_on", "moved_on", etc.
+- **Check relationship timestamps** for when events occurred
+- Look at relationship types like "BOUGHT", "PURCHASED", "MOVED_TO" for temporal events
 - Be specific and concise
 - If the information is not in the knowledge graph, say "I don't have that information"
 
@@ -238,29 +249,29 @@ Answer:"""
         
         return response.choices[0].message.content.strip()
     
-    def get_all_entities(self) -> List[Dict]:
-        """Get all entities from the knowledge graph"""
+    def get_all_entities(self, user_id: str = "demo_user") -> List[Dict]:
+        """Get all entities from the knowledge graph for a specific user"""
         with self.neo4j.get_session() as session:
             result = session.run("""
-                MATCH (e:Entity)
+                MATCH (e:Entity {user_id: $user_id})
                 RETURN e.name AS name, e.type AS type, properties(e) AS properties
                 ORDER BY e.type, e.name
-            """)
+            """, user_id=user_id)
             return [{"name": record["name"], "type": record["type"], "properties": record["properties"]} 
                     for record in result]
     
-    def get_all_relationships(self) -> List[Dict]:
-        """Get all relationships from the knowledge graph"""
+    def get_all_relationships(self, user_id: str = "demo_user") -> List[Dict]:
+        """Get all relationships from the knowledge graph for a specific user"""
         with self.neo4j.get_session() as session:
             result = session.run("""
-                MATCH (source:Entity)-[r:RELATES]->(target:Entity)
+                MATCH (source:Entity {user_id: $user_id})-[r:RELATES {user_id: $user_id}]->(target:Entity {user_id: $user_id})
                 RETURN source.name AS source,
                        r.type AS rel_type,
                        target.name AS target,
                        r.timestamp AS timestamp,
                        properties(r) AS properties
                 ORDER BY r.timestamp DESC
-            """)
+            """, user_id=user_id)
             return [{
                 "source": record["source"],
                 "type": record["rel_type"],
