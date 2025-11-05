@@ -353,7 +353,7 @@
             <div class="question-item">
                 <div class="question-header">
                     <div class="question-text">{{ question }}</div>
-                    <button class="answer-button" onclick="getAnswer({{ loop.index0 }}, '{{ question }}')">
+                    <button class="answer-button" data-index="{{ loop.index0 }}" data-question="{{ question|replace("'", "&apos;")|replace('"', "&quot;") }}">
                         <i class="fas fa-search"></i> Answer
                     </button>
                 </div>
@@ -439,10 +439,20 @@
             }
         }
 
-        async function getAnswer(index, question) {
+        // Add click handlers to all answer buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.answer-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = this.dataset.index;
+                    const question = this.dataset.question;
+                    getAnswer(index, question, this);
+                });
+            });
+        });
+
+        async function getAnswer(index, question, button) {
             const answerContent = document.getElementById(`answer-${index}`);
             const answerText = answerContent.querySelector('.answer-text');
-            const button = event.target.closest('.answer-button');
 
             // If answer already shown, hide it
             if (answerContent.classList.contains('active')) {
