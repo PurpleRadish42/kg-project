@@ -1,9 +1,11 @@
 [project]
 name = "kg-project"
 version = "0.1.0"
-description = "Add your description here"
+description = "Knowledge Graph-driven Local AI with Neo4j"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "openai>=2.7.1",
+    "neo4j>=5.24.0",
+    "python-dotenv>=1.0.0",
 ]
