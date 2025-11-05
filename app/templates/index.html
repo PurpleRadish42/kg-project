@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Knowledge Graph AI{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="fas fa-brain text-primary"></i> Knowledge Graph AI
+            </h1>
+            <p class="lead text-muted">
+                A context-aware AI system that extracts information from natural language 
+                and stores it in a knowledge graph for intelligent querying.
+            </p>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-plus-circle fa-3x text-primary mb-3"></i>
+                        <h5 class="card-title">Add Knowledge</h5>
+                        <p class="card-text text-muted">
+                            Input natural language text to extract entities and relationships.
+                        </p>
+                        <a href="{{ url_for('web.add_knowledge') }}" class="btn btn-primary">
+                            Get Started <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-question-circle fa-3x text-success mb-3"></i>
+                        <h5 class="card-title">Ask Questions</h5>
+                        <p class="card-text text-muted">
+                            Query the knowledge graph to get intelligent answers.
+                        </p>
+                        <a href="{{ url_for('web.query') }}" class="btn btn-success">
+                            Query Now <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+                        <i class="fas fa-sitemap fa-3x text-info mb-3"></i>
+                        <h5 class="card-title">View Graph</h5>
+                        <p class="card-text text-muted">
+                            Explore the knowledge graph structure and relationships.
+                        </p>
+                        <a href="{{ url_for('web.view_graph') }}" class="btn btn-info">
+                            Explore <i class="fas fa-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>How It Works</h5>
+            </div>
+            <div class="card-body">
+                <ol class="mb-0">
+                    <li class="mb-2"><strong>Extract:</strong> Use AI to extract entities, relationships, and temporal information from natural language text.</li>
+                    <li class="mb-2"><strong>Store:</strong> Store structured knowledge in Neo4j with temporal and provenance metadata.</li>
+                    <li class="mb-2"><strong>Query:</strong> Ask questions and get intelligent answers based on the knowledge graph.</li>
+                    <li><strong>Adapt:</strong> The system tracks changes over time and provides current state information.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

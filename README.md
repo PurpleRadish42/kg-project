@@ -1,37 +1,39 @@
-# Knowledge Graph-Driven Local AI System
+# Knowledge Graph AI - Flask Demo
 
-A context-aware AI system that extracts information from natural language text and stores it in a Neo4j knowledge graph for intelligent querying and reasoning.
-
-## Project Abstract
-
-Personalized AI systems often rely heavily on cloud-based services and generalized datasets, which limit their ability to adapt to highly specific local contexts while raising concerns around privacy. This research proposes a knowledge graph-driven local AI model designed to capture and utilize contextual information in dynamic environments such as households. The system allows users to define contextual facts through natural language, which are parsed into structured knowledge graph triples. These facts are stored with temporal and provenance metadata, enabling adaptive reasoning and conflict resolution.
+A Flask application that extracts knowledge from natural language text using GPT-4o-mini, stores it in a Neo4j knowledge graph, and answers questions through intelligent querying.
 
 ## Features
 
-- **Natural Language Processing**: Extracts entities, relationships, and temporal information from text using GPT-4o-mini
-- **Knowledge Graph Storage**: Stores structured information in Neo4j with temporal and provenance metadata
-- **Intelligent Querying**: Answers questions by reasoning over the knowledge graph
-- **Temporal Awareness**: Tracks changes over time and provides current state information
-- **Privacy-Preserving**: Runs locally with your own Neo4j instance
+- **Single-page demo interface** with beautiful gradient UI
+- **Automatic knowledge extraction** from natural language text
+- **Neo4j graph storage** with temporal and relationship tracking
+- **Intelligent question answering** using the knowledge graph
+- **REST API** for programmatic access
 
 ## Prerequisites
 
 - Python 3.13+
-- Neo4j database (Docker or local installation)
+- Neo4j Database (Aura Cloud or local)
 - OpenAI API key
 
 ## Setup
 
-### 1. Start Neo4j Database
+### 1. Configure Environment
 
-Using Docker:
+Create a `.env` file:
+
 ```bash
-docker run -d \
-    --name neo4j \
-    -p 7474:7474 -p 7687:7687 \
-    -e NEO4J_AUTH=neo4j/password \
-    neo4j:latest
+cat > .env << EOF
+OPENAI_API_KEY=your_openai_api_key_here
+NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=your_neo4j_password
+NEO4J_DATABASE=neo4j
+SECRET_KEY=change-this-in-production
+EOF
 ```
+
+**Important:** Replace `your_openai_api_key_here` with your actual OpenAI API key.
 
 ### 2. Install Dependencies
 
@@ -39,94 +41,101 @@ docker run -d \
 uv sync
 ```
 
-### 3. Configure Environment
+### 3. Run the Application
 
-Copy `.env.example` to `.env` and fill in your credentials:
 ```bash
-cp .env.example .env
+uv run python run.py
 ```
 
-Edit `.env`:
-```
-OPENAI_API_KEY=your_actual_api_key
-NEO4J_URI=bolt://localhost:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=password
-```
+The application will start on http://localhost:5000
 
 ## Usage
 
-Run the test script:
+### Demo Interface
+
+Open http://localhost:5000 in your browser:
+
+1. Read the test paragraph about car keys, coffee maker, etc.
+2. Click **"Store Data in Knowledge Graph"**
+3. Wait for the loading animation (3-5 seconds)
+4. Click **"Answer"** on any of the 4 test questions
+5. See the knowledge graph in action!
+
+### REST API
+
+#### Store Knowledge
 ```bash
-python kg_system.py
+curl -X POST http://localhost:5000/api/add \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I placed my keys on the table."}'
 ```
 
-This will:
-1. Process a test paragraph about car keys, coffee maker, etc.
-2. Extract entities and relationships
-3. Store them in Neo4j
-4. Answer predefined questions about the content
+#### Query Knowledge
+```bash
+curl -X POST http://localhost:5000/api/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "Where are my keys?"}'
+```
+
+#### Get All Entities
+```bash
+curl http://localhost:5000/api/entities
+```
+
+#### Get All Relationships
+```bash
+curl http://localhost:5000/api/relationships
+```
+
+## Project Structure
+
+```
+kg-project/
+├── app/
+│   ├── routes/          # API and web routes
+│   ├── services/        # Business logic (KG and Neo4j)
+│   ├── templates/       # HTML templates
+│   └── static/          # CSS and JS
+├── config.py            # Configuration
+├── run.py               # Application entry point
+└── docker-compose.yml   # Neo4j setup
+```
 
 ## How It Works
 
-### 1. Knowledge Extraction
+1. **Extract**: GPT-4o-mini analyzes text and extracts entities, relationships, and temporal information
+2. **Store**: Structured knowledge is stored in Neo4j with timestamps and provenance
+3. **Query**: Questions are answered by reasoning over the knowledge graph using GPT-4o-mini
 
-The system uses GPT-4o-mini to analyze natural language text and extract:
-- **Entities**: Objects, people, locations (e.g., "car keys", "coffee maker", "kitchen counter")
-- **Relationships**: Connections between entities (e.g., "car keys LOCATED_AT bedroom closet")
-- **Properties**: Attributes of entities (e.g., "coffee maker" has brand "Breville")
-- **Temporal Data**: When events occurred (e.g., "Monday morning", "Tuesday evening")
+## Troubleshooting
 
-### 2. Knowledge Storage
+### Neo4j Connection Error
+- Verify your Neo4j Aura instance is running
+- Check that NEO4J_URI, NEO4J_USERNAME, and NEO4J_PASSWORD are correct in `.env`
+- Ensure your IP is whitelisted in Neo4j Aura (or allow 0.0.0.0/0 for testing)
 
-Information is stored in Neo4j as a graph:
-- Nodes represent entities
-- Edges represent relationships
-- Both include temporal metadata and provenance information
+### OpenAI API Error
+- Verify API key is correct in `.env`
+- Check you have credits at https://platform.openai.com/usage
 
-### 3. Query Processing
+### Page Won't Load
+- Make sure Flask is running on port 5000
+- Check terminal for error messages
 
-When you ask a question:
-1. The system retrieves relevant information from Neo4j
-2. GPT-4o-mini reasons over the graph data
-3. Returns the most current, accurate answer based on timestamps
+## Configuration
 
-## Example
+Edit `.env` file:
 
-**Input Text:**
-> "On Monday morning, I placed my car keys on the kitchen counter next to the coffee maker. Later that afternoon, my roommate moved them to the key hook by the front door. On Tuesday evening, I found them in my roommate's jacket pocket in the bedroom closet."
-
-**Question:** "Where are my car keys?"
-
-**Answer:** "Your car keys are in your roommate's jacket pocket in the bedroom closet (as of Tuesday evening, the most recent location)."
-
-## Architecture
-
+```env
+OPENAI_API_KEY=your_api_key                           # Required
+OPENAI_MODEL=gpt-4o-mini                              # Model to use (default)
+NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io # Neo4j Aura URI
+NEO4J_USERNAME=neo4j                                  # Neo4j username
+NEO4J_PASSWORD=your_password                          # Neo4j password
+NEO4J_DATABASE=neo4j                                  # Database name (usually 'neo4j')
+SECRET_KEY=your-secret-key                            # Flask secret key
 ```
-User Input (Natural Language)
-         ↓
-    GPT-4o-mini (Extraction)
-         ↓
-    Structured Knowledge
-         ↓
-    Neo4j Graph Database
-         ↓
-    Query Processing (GPT-4o-mini + Graph Queries)
-         ↓
-    Natural Language Answer
-```
-
-## Future Enhancements
-
-- Vector-based semantic search for hybrid retrieval
-- Conflict resolution for contradictory information
-- Multi-user context support
-- Real-time updates through continuous monitoring
-- Privacy-preserving local model integration
 
 ## License
 
 MIT
-
-
-
