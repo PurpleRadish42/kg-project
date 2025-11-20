@@ -399,7 +399,8 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to store data');
+                    const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+                    throw new Error(errorData.error || 'Failed to store data');
                 }
 
                 const result = await response.json();
@@ -432,10 +433,13 @@
             } catch (error) {
                 console.error('Error:', error);
                 loadingOverlay.classList.remove('active');
+                
+                const errorMessage = error.message || 'Error storing data. Please check the console for details.';
+                
                 storeBtn.disabled = false;
                 storeBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error - Try Again';
                 storeBtn.style.background = 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)';
-                alert('Error storing data. Please make sure Neo4j is running and try again.');
+                alert(errorMessage + '\n\nCheck browser console (F12) for more details.');
             }
         }
 

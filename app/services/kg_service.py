@@ -107,22 +107,35 @@ Return ONLY the JSON object, no additional text."""
             
             # Create entities with user_id
             for entity in knowledge.get("entities", []):
+                # First, create or update the entity
                 session.run("""
                     MERGE (e:Entity {name: $name, user_id: $user_id})
                     SET e.type = $type,
                         e.last_updated = $timestamp,
                         e.source = $source
-                    WITH e
-                    UNWIND $properties AS prop
-                    SET e[prop.key] = prop.value
                 """, 
                     name=entity["name"],
                     user_id=user_id,
                     type=entity["type"],
                     timestamp=timestamp,
-                    source=source_text[:100] + "...",
-                    properties=[{"key": k, "value": v} for k, v in entity.get("properties", {}).items()]
+                    source=source_text[:100] + "..."
                 )
+                
+                # Then set properties separately to avoid issues
+                for key, value in entity.get("properties", {}).items():
+                    try:
+                        session.run("""
+                            MATCH (e:Entity {name: $name, user_id: $user_id})
+                            SET e[$prop_key] = $prop_value
+                        """, 
+                            name=entity["name"],
+                            user_id=user_id,
+                            prop_key=key,
+                            prop_value=value
+                        )
+                    except Exception as e:
+                        print(f"Warning: Could not set property {key} for entity {entity['name']}: {e}")
+                        pass
             
             # Create relationships with user_id
             for rel in knowledge.get("relationships", []):

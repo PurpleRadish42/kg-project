@@ -2,7 +2,7 @@
 API routes for the Knowledge Graph application
 """
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app as app
 from flask_login import current_user
 from app.services.kg_service import KnowledgeGraphService
 
@@ -20,11 +20,20 @@ def add_knowledge():
     
     try:
         # Use current_user.username if logged in, otherwise demo_user
-        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        # Safely check if user is authenticated (works even if AnonymousUser)
+        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_id = current_user.username
+        else:
+            user_id = "demo_user"
+        
+        print(f"Storing knowledge for user_id: {user_id}")
         
         kg_service = KnowledgeGraphService()
         knowledge = kg_service.extract_knowledge(text)
+        print(f"Extracted {len(knowledge.get('entities', []))} entities")
+        
         kg_service.store_knowledge(knowledge, text, user_id=user_id)
+        print(f"Successfully stored knowledge for {user_id}")
         
         return jsonify({
             "success": True,
@@ -33,7 +42,19 @@ def add_knowledge():
             "knowledge": knowledge
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        error_msg = str(e)
+        endpoint_name = request.endpoint or "unknown"
+        print(f"\n{'='*60}")
+        print(f"ERROR in {endpoint_name}:")
+        print(f"Message: {error_msg}")
+        print(f"Traceback:\n{error_trace}")
+        print(f"{'='*60}\n")
+        return jsonify({
+            "error": error_msg,
+            "details": error_trace if app.config.get("DEBUG") else "Enable DEBUG mode for details"
+        }), 500
 
 
 @bp.route("/query", methods=["POST"])
@@ -47,7 +68,11 @@ def query():
     
     try:
         # Use current_user.username if logged in, otherwise demo_user
-        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        # Safely check if user is authenticated (works even if AnonymousUser)
+        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_id = current_user.username
+        else:
+            user_id = "demo_user"
         
         kg_service = KnowledgeGraphService()
         answer = kg_service.query_knowledge(question, user_id=user_id)
@@ -58,7 +83,19 @@ def query():
             "answer": answer
         }), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        error_msg = str(e)
+        endpoint_name = request.endpoint or "unknown"
+        print(f"\n{'='*60}")
+        print(f"ERROR in {endpoint_name}:")
+        print(f"Message: {error_msg}")
+        print(f"Traceback:\n{error_trace}")
+        print(f"{'='*60}\n")
+        return jsonify({
+            "error": error_msg,
+            "details": error_trace if app.config.get("DEBUG") else "Enable DEBUG mode for details"
+        }), 500
 
 
 @bp.route("/entities", methods=["GET"])
@@ -66,13 +103,29 @@ def get_entities():
     """Get all entities (API endpoint)"""
     try:
         # Use current_user.username if logged in, otherwise demo_user
-        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        # Safely check if user is authenticated (works even if AnonymousUser)
+        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_id = current_user.username
+        else:
+            user_id = "demo_user"
         
         kg_service = KnowledgeGraphService()
         entities = kg_service.get_all_entities(user_id=user_id)
         return jsonify({"success": True, "entities": entities}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        error_msg = str(e)
+        endpoint_name = request.endpoint or "unknown"
+        print(f"\n{'='*60}")
+        print(f"ERROR in {endpoint_name}:")
+        print(f"Message: {error_msg}")
+        print(f"Traceback:\n{error_trace}")
+        print(f"{'='*60}\n")
+        return jsonify({
+            "error": error_msg,
+            "details": error_trace if app.config.get("DEBUG") else "Enable DEBUG mode for details"
+        }), 500
 
 
 @bp.route("/relationships", methods=["GET"])
@@ -80,12 +133,28 @@ def get_relationships():
     """Get all relationships (API endpoint)"""
     try:
         # Use current_user.username if logged in, otherwise demo_user
-        user_id = current_user.username if current_user.is_authenticated else "demo_user"
+        # Safely check if user is authenticated (works even if AnonymousUser)
+        if hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_id = current_user.username
+        else:
+            user_id = "demo_user"
         
         kg_service = KnowledgeGraphService()
         relationships = kg_service.get_all_relationships(user_id=user_id)
         return jsonify({"success": True, "relationships": relationships}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        error_trace = traceback.format_exc()
+        error_msg = str(e)
+        endpoint_name = request.endpoint or "unknown"
+        print(f"\n{'='*60}")
+        print(f"ERROR in {endpoint_name}:")
+        print(f"Message: {error_msg}")
+        print(f"Traceback:\n{error_trace}")
+        print(f"{'='*60}\n")
+        return jsonify({
+            "error": error_msg,
+            "details": error_trace if app.config.get("DEBUG") else "Enable DEBUG mode for details"
+        }), 500
 
 
