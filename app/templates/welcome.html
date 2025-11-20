@@ -1,230 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Knowledge Graph AI - Welcome</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Knowledge Graph AI</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Tiempos+Text:wght@400;600&display=swap"
+        rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            min-height: 100vh;
+            background-color: var(--bg-color);
+        }
+
+        .welcome-container {
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
             padding: 2rem;
         }
 
-        .container {
-            max-width: 800px;
-            width: 100%;
-        }
-
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .logo-icon {
+            font-size: 3rem;
+            color: var(--accent-color);
+            margin-bottom: 1.5rem;
+            background: #F4EBE8;
+            width: 80px;
+            height: 80px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
         }
 
         h1 {
-            color: #333;
+            font-family: var(--font-serif);
             font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-weight: 500;
         }
 
         .subtitle {
-            color: #666;
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-        }
-
-        .features {
-            margin: 2rem 0;
-            text-align: left;
-        }
-
-        .feature {
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .feature i {
-            color: #667eea;
-            font-size: 1.5rem;
-        }
-
-        .buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 1rem 2rem;
-            border-radius: 12px;
+            font-family: var(--font-sans);
+            color: var(--text-secondary);
             font-size: 1.1rem;
-            font-weight: 600;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
+            line-height: 1.6;
+            margin-bottom: 2.5rem;
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-
-        .btn-secondary {
+        .action-card {
             background: white;
-            color: #667eea;
-            border: 2px solid #667eea;
-        }
-
-        .btn-secondary:hover {
-            background: #f8f9fa;
-        }
-
-        .auth-links {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid #e0e0e0;
-        }
-
-        .auth-links p {
-            color: #666;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
             margin-bottom: 1rem;
+            text-align: left;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: block;
+            color: var(--text-primary);
         }
 
-        .auth-buttons {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
+        .action-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            border-color: var(--accent-color);
         }
 
-        .btn-small {
-            padding: 0.6rem 1.2rem;
-            font-size: 0.95rem;
-        }
-
-        .user-greeting {
-            background: #d4edda;
-            color: #155724;
-            padding: 1rem;
-            border-radius: 10px;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .user-greeting strong {
+        .action-title {
             font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
         }
 
-        .btn-logout {
-            background: #dc3545;
-            color: white;
-            padding: 0.4rem 1rem;
+        .action-desc {
+            color: var(--text-secondary);
             font-size: 0.9rem;
+            display: block;
         }
 
-        .btn-logout:hover {
-            background: #c82333;
+        .auth-section {
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+        }
+
+        .btn-auth {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            margin: 0 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-login {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn-login:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-register {
+            background-color: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-register:hover {
+            background-color: #f8f9fa;
+            border-color: var(--text-primary);
         }
     </style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="card">
-            <h1><i class="fas fa-brain"></i> Knowledge Graph AI</h1>
-            <p class="subtitle">Extract, Store, and Query Knowledge from Natural Language</p>
-
-            {% if current_user.is_authenticated %}
-            <div class="user-greeting">
-                <span><i class="fas fa-user-circle"></i> Welcome back, <strong>{{ current_user.username }}</strong>!</span>
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-logout btn-small">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-            {% endif %}
-
-            <div class="features">
-                <div class="feature">
-                    <i class="fas fa-magic"></i>
-                    <span>Automatically extract entities and relationships from text</span>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-database"></i>
-                    <span>Store knowledge in Neo4j graph database</span>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-search"></i>
-                    <span>Answer questions using intelligent reasoning</span>
-                </div>
-                <div class="feature">
-                    <i class="fas fa-clock"></i>
-                    <span>Track temporal changes and current state</span>
-                </div>
-            </div>
-
-            <div class="buttons">
-                <a href="{{ url_for('web.demo') }}" class="btn btn-primary">
-                    <i class="fas fa-play-circle"></i> Try Demo
-                </a>
-            </div>
-
-            {% if not current_user.is_authenticated %}
-            <div class="auth-links">
-                <p>Create an account to save your own contexts!</p>
-                <div class="auth-buttons">
-                    <a href="{{ url_for('auth.register') }}" class="btn btn-secondary btn-small">
-                        <i class="fas fa-user-plus"></i> Register
-                    </a>
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-secondary btn-small">
-                        <i class="fas fa-sign-in-alt"></i> Login
-                    </a>
-                </div>
-            </div>
-            {% endif %}
+    <div class="welcome-container">
+        <div class="logo-icon">
+            <i class="fas fa-cube"></i>
         </div>
+
+        {% if current_user.is_authenticated %}
+        <h1>Good morning, {{ current_user.username }}</h1>
+        <p class="subtitle">Ready to explore your knowledge graph?</p>
+
+        <div class="d-grid gap-3">
+            <a href="{{ url_for('web.add_knowledge') }}" class="action-card">
+                <span class="action-title"><i class="fas fa-plus-circle me-2"></i>Add Knowledge</span>
+                <span class="action-desc">Extract entities and relationships from natural language text.</span>
+            </a>
+
+            <a href="{{ url_for('web.query') }}" class="action-card">
+                <span class="action-title"><i class="fas fa-comment-alt me-2"></i>Query Graph</span>
+                <span class="action-desc">Ask questions and get answers based on your stored knowledge.</span>
+            </a>
+
+            <a href="{{ url_for('web.view_graph') }}" class="action-card">
+                <span class="action-title"><i class="fas fa-project-diagram me-2"></i>View Graph</span>
+                <span class="action-desc">Visualize your entire knowledge graph structure.</span>
+            </a>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ url_for('auth.logout') }}" class="text-muted text-decoration-none small">Sign out</a>
+        </div>
+        {% else %}
+        <h1>Knowledge Graph AI</h1>
+        <p class="subtitle">
+            An intelligent system that extracts, stores, and reasons over knowledge from natural language.
+        </p>
+
+        <a href="{{ url_for('web.demo') }}" class="action-card text-center">
+            <span class="action-title" style="font-size: 1.1rem;">Try the Demo</span>
+            <span class="action-desc">Experience the power of knowledge graphs without an account.</span>
+        </a>
+
+        <div class="auth-section">
+            <p class="mb-3 text-muted">Create an account to save your own context</p>
+            <a href="{{ url_for('auth.login') }}" class="btn-auth btn-login">Log in</a>
+            <a href="{{ url_for('auth.register') }}" class="btn-auth btn-register">Sign up</a>
+        </div>
+        {% endif %}
     </div>
 </body>
-</html>
 
+</html>

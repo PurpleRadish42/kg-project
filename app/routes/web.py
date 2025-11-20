@@ -2,25 +2,88 @@
 Web routes for the Knowledge Graph application
 """
 
-from flask import Blueprint, render_template, redirect, url_for
+from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import current_user, login_required
+from app.services.kg_service import KnowledgeGraphService
 
 bp = Blueprint("web", __name__)
 
 
 @bp.route("/")
 def index():
-    """Welcome page - redirect to chat if logged in"""
+    """Welcome page - redirect to query if logged in"""
     if current_user.is_authenticated:
-        return redirect(url_for("web.chat"))
+        return redirect(url_for("web.query"))
     return render_template("welcome.html")
 
 
-@bp.route("/chat")
+@bp.route("/add", methods=["GET", "POST"])
 @login_required
-def chat():
-    """Chat interface for logged-in users"""
-    return render_template("chat.html")
+def add_knowledge():
+    """Add knowledge page"""
+    kg_service = KnowledgeGraphService()
+    text = None
+    if request.method == "POST":
+        text = request.form.get("text")
+        if text:
+            try:
+                # Extract and store knowledge
+                knowledge = kg_service.extract_knowledge(text)
+                kg_service.store_knowledge(knowledge, text, user_id=current_user.username)
+                flash("Knowledge extracted and stored successfully!", "success")
+            except Exception as e:
+                flash(f"Error processing text: {str(e)}", "error")
+    
+    return render_template("add.html", text=text)
+
+
+@bp.route("/query", methods=["GET", "POST"])
+@login_required
+def query():
+    """Query interface"""
+    kg_service = KnowledgeGraphService()
+    question = None
+    answer = None
+    
+    if request.method == "POST":
+        question = request.form.get("question")
+        if question:
+            try:
+                answer = kg_service.query_knowledge(question, user_id=current_user.username)
+            except Exception as e:
+                answer = f"Error: {str(e)}"
+                
+    return render_template("query.html", question=question, answer=answer)
+
+
+@bp.route("/graph")
+@login_required
+def view_graph():
+    """View knowledge graph"""
+    kg_service = KnowledgeGraphService()
+    try:
+        entities = kg_service.get_all_entities(user_id=current_user.username)
+        relationships = kg_service.get_all_relationships(user_id=current_user.username)
+    except Exception as e:
+        flash(f"Error fetching graph data: {str(e)}", "error")
+        entities = []
+        relationships = []
+        
+    return render_template("graph.html", entities=entities, relationships=relationships)
+
+
+@bp.route("/clear", methods=["POST"])
+@login_required
+def clear_database():
+    """Clear all data for the current user"""
+    kg_service = KnowledgeGraphService()
+    try:
+        kg_service.clear_database(user_id=current_user.username)
+        flash("Knowledge graph cleared successfully!", "success")
+    except Exception as e:
+        flash(f"Error clearing database: {str(e)}", "error")
+        
+    return redirect(url_for("web.view_graph"))
 
 
 @bp.route("/demo")

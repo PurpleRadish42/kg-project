@@ -293,4 +293,13 @@ Answer:"""
                 "properties": record["properties"]
             } for record in result]
 
+    def clear_database(self, user_id: str = "demo_user"):
+        """Clear all data for a specific user"""
+        with self.neo4j.get_session() as session:
+            session.run("""
+                MATCH (n:Entity {user_id: $user_id})
+                DETACH DELETE n
+            """, user_id=user_id)
+
+
 

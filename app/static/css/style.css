@@ -1,64 +1,315 @@
-/* Custom styles for Knowledge Graph AI */
+/* Claude.ai Inspired Theme */
+
+:root {
+    /* Color Palette */
+    --bg-color: #FAF9F5;        /* Warm Beige Background */
+    --sidebar-bg: #F2F1EA;      /* Slightly darker beige for sidebar */
+    --text-primary: #1A1A1A;    /* Near Black */
+    --text-secondary: #5A5A5A;  /* Dark Grey */
+    --accent-color: #D97757;    /* Burnt Orange (Anthropic-like accent) */
+    --accent-hover: #C06040;
+    --border-color: #E0E0E0;
+    --input-bg: #FFFFFF;
+    --card-bg: #FFFFFF;
+    
+    /* Typography */
+    --font-serif: 'Tiempos Text', 'Georgia', serif;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
 
 body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    margin: 0;
+    padding: 0;
+    display: flex;
     min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Layout */
+.app-container {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 260px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+    flex-shrink: 0;
+    position: fixed;
+    height: 100vh;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.sidebar-brand {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+}
+
+.sidebar-brand i {
+    color: var(--accent-color);
+    margin-right: 0.5rem;
+}
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: var(--text-secondary);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.nav-item:hover {
+    background-color: rgba(0,0,0,0.05);
+    color: var(--text-primary);
+}
+
+.nav-item.active {
+    background-color: #E6E4DD;
+    color: var(--text-primary);
+}
+
+.nav-item i {
+    width: 24px;
+    margin-right: 0.5rem;
+    text-align: center;
+}
+
+.user-profile {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    margin-left: 260px; /* Match sidebar width */
+    padding: 2rem 4rem;
+    max-width: 1200px;
+    margin-right: auto; /* Center content if screen is very wide */
+    width: calc(100% - 260px);
+}
+
+/* Typography Overrides */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Cards */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding: 1.25rem;
+    font-family: var(--font-serif);
+    font-weight: 600;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn-outline-primary {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+    border-radius: 8px;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+}
+
+/* Forms */
+.form-control {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+}
+
+.form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.1);
+}
+
+/* Chat Interface Styles */
+.chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 4rem);
+}
+
+.chat-history {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.message {
+    display: flex;
+    gap: 1rem;
+    max-width: 100%;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-avatar {
+    background-color: #E6E4DD;
+    color: var(--text-primary);
+}
+
+.ai-avatar {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.message-content {
+    flex: 1;
+    line-height: 1.6;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.chat-input-area {
+    position: sticky;
+    bottom: 0;
+    background-color: var(--bg-color);
+    padding: 1rem 0;
+    margin-top: auto;
+}
+
+.chat-input-wrapper {
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 0.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     display: flex;
     flex-direction: column;
 }
 
-main {
-    flex: 1;
-}
-
-.card {
+.chat-input {
     border: none;
-    border-radius: 10px;
+    resize: none;
+    width: 100%;
+    padding: 0.8rem;
+    outline: none;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    max-height: 200px;
+    background: transparent;
 }
 
-.card-header {
-    border-radius: 10px 10px 0 0 !important;
+.chat-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.5rem;
 }
 
-.navbar-brand {
-    font-weight: bold;
-}
-
-.list-group-item {
-    border-left: 3px solid transparent;
-    transition: all 0.3s;
-}
-
-.list-group-item:hover {
-    border-left-color: #0d6efd;
-    background-color: #f8f9fa;
-}
-
-.badge {
-    font-size: 0.85em;
-    padding: 0.35em 0.65em;
-}
-
-.shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-}
-
-/* Custom scrollbar for long lists */
-.card-body::-webkit-scrollbar {
-    width: 8px;
-}
-
-.card-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-.card-body::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 10px;
-}
-
-.card-body::-webkit-scrollbar-thumb:hover {
-    background: #555;
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+        padding: 1rem;
+    }
+    
+    .mobile-nav-toggle {
+        display: block;
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1001;
+    }
 }
 
 

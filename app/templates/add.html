@@ -3,64 +3,46 @@
 {% block title %}Add Knowledge - Knowledge Graph AI{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-8 mx-auto">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Add Knowledge</h4>
-            </div>
-            <div class="card-body">
-                <p class="text-muted">
-                    Enter natural language text describing events, objects, locations, and relationships. 
-                    The system will automatically extract entities and relationships.
-                </p>
-                
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="text" class="form-label">Text to Process</label>
-                        <textarea 
-                            class="form-control" 
-                            id="text" 
-                            name="text" 
-                            rows="8" 
-                            placeholder="Example: On Monday morning, I placed my car keys on the kitchen counter next to the coffee maker..."
-                            required
-                        >{% if text %}{{ text }}{% endif %}</textarea>
-                        <div class="form-text">
-                            Describe events, locations, objects, and their relationships in natural language.
-                        </div>
-                    </div>
-                    
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('web.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-times me-1"></i>Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-magic me-1"></i>Extract & Store Knowledge
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+<div class="container" style="max-width: 800px;">
+    <h1 class="mb-4">Add Knowledge</h1>
 
-        <div class="card shadow-sm mt-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Example</h5>
-            </div>
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-4">
+                    <label for="text" class="form-label text-muted fw-medium">Describe events, objects, or
+                        relationships</label>
+                    <textarea class="form-control" id="text" name="text" rows="8"
+                        placeholder="e.g., On Monday morning, I placed my car keys on the kitchen counter next to the coffee maker..."
+                        style="min-height: 200px; resize: vertical;"
+                        required>{% if text %}{{ text }}{% endif %}</textarea>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('web.index') }}" class="text-decoration-none text-muted">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-magic me-2"></i>Extract & Store
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <h5 class="text-muted mb-3"
+            style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+            Example</h5>
+        <div class="card bg-light border-0">
             <div class="card-body">
-                <p class="mb-0">
-                    <strong>Input:</strong> "On Monday morning, I placed my car keys on the kitchen counter next to the coffee maker. 
-                    Later that afternoon, my roommate moved them to the key hook by the front door."
-                </p>
-                <hr>
-                <p class="mb-0">
-                    <strong>Extracted:</strong> Entities (car keys, kitchen counter, coffee maker, roommate, key hook, front door), 
-                    Relationships (LOCATED_ON, MOVED_TO, LOCATED_AT), Temporal information (Monday morning, Monday afternoon)
-                </p>
+                <p class="mb-2 text-muted">"On Monday morning, I placed my car keys on the kitchen counter next to the
+                    coffee maker. Later that afternoon, my roommate moved them to the key hook by the front door."</p>
+                <div class="d-flex gap-2 mt-3">
+                    <span class="badge bg-white text-dark border">Entities: 6</span>
+                    <span class="badge bg-white text-dark border">Relationships: 3</span>
+                    <span class="badge bg-white text-dark border">Temporal: 2</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
-
