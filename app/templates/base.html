@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Knowledge Graph AI{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Tiempos+Text:wght@400;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Tiempos+Text:wght@400;600&display=swap"
+        rel="stylesheet">
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
     {% block extra_head %}{% endblock %}
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -17,43 +21,50 @@
             <a class="sidebar-brand" href="{{ url_for('web.index') }}">
                 <i class="fas fa-cube"></i> KG AI
             </a>
-            
+
             <nav class="nav-links">
                 <a class="nav-item {{ 'active' if request.endpoint == 'web.index' }}" href="{{ url_for('web.index') }}">
                     <i class="fas fa-home"></i> Home
                 </a>
-                <a class="nav-item {{ 'active' if request.endpoint == 'web.add_knowledge' }}" href="{{ url_for('web.add_knowledge') }}">
+                <a class="nav-item {{ 'active' if request.endpoint == 'web.knowledge_base' }}"
+                    href="{{ url_for('web.knowledge_base') }}">
+                    <i class="fas fa-book"></i> Knowledge Base
+                </a>
+                <a class="nav-item {{ 'active' if request.endpoint == 'web.add_knowledge' }}"
+                    href="{{ url_for('web.add_knowledge') }}">
                     <i class="fas fa-plus"></i> Add Knowledge
                 </a>
                 <a class="nav-item {{ 'active' if request.endpoint == 'web.query' }}" href="{{ url_for('web.query') }}">
                     <i class="fas fa-comment-alt"></i> Query
                 </a>
-                <a class="nav-item {{ 'active' if request.endpoint == 'web.view_graph' }}" href="{{ url_for('web.view_graph') }}">
+                <a class="nav-item {{ 'active' if request.endpoint == 'web.view_graph' }}"
+                    href="{{ url_for('web.view_graph') }}">
                     <i class="fas fa-project-diagram"></i> Graph View
                 </a>
             </nav>
-            
+
             <div class="user-profile">
                 {% if current_user.is_authenticated %}
-                    <div class="d-flex align-items-center px-3 mb-2">
-                        <div class="avatar me-2 rounded bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                            {{ current_user.username[0].upper() }}
-                        </div>
-                        <div class="text-truncate">
-                            <small class="d-block text-muted">Logged in as</small>
-                            <strong>{{ current_user.username }}</strong>
-                        </div>
+                <div class="d-flex align-items-center px-3 mb-2">
+                    <div class="avatar me-2 rounded bg-secondary text-white d-flex align-items-center justify-content-center"
+                        style="width: 32px; height: 32px;">
+                        {{ current_user.username[0].upper() }}
                     </div>
-                    <a class="nav-item text-danger" href="{{ url_for('auth.logout') }}">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
+                    <div class="text-truncate">
+                        <small class="d-block text-muted">Logged in as</small>
+                        <strong>{{ current_user.username }}</strong>
+                    </div>
+                </div>
+                <a class="nav-item text-danger" href="{{ url_for('auth.logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
                 {% else %}
-                    <a class="nav-item" href="{{ url_for('auth.login') }}">
-                        <i class="fas fa-sign-in-alt"></i> Login
-                    </a>
-                    <a class="nav-item" href="{{ url_for('auth.register') }}">
-                        <i class="fas fa-user-plus"></i> Register
-                    </a>
+                <a class="nav-item" href="{{ url_for('auth.login') }}">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a class="nav-item" href="{{ url_for('auth.register') }}">
+                    <i class="fas fa-user-plus"></i> Register
+                </a>
                 {% endif %}
             </div>
         </aside>
@@ -61,14 +72,15 @@
         <!-- Main Content -->
         <main class="main-content">
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-4" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show mb-4"
+                role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
             {% endwith %}
 
             {% block content %}{% endblock %}
@@ -78,6 +90,5 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     {% block extra_scripts %}{% endblock %}
 </body>
+
 </html>
-
-

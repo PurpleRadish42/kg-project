@@ -105,6 +105,19 @@ Return ONLY the JSON object, no additional text."""
             # Store provenance
             timestamp = datetime.now().isoformat()
             
+            # Create Document node to store the full source text
+            session.run("""
+                CREATE (d:Document {
+                    text: $text,
+                    user_id: $user_id,
+                    timestamp: $timestamp
+                })
+            """,
+                text=source_text,
+                user_id=user_id,
+                timestamp=timestamp
+            )
+            
             # Create entities with user_id
             for entity in knowledge.get("entities", []):
                 # First, create or update the entity
@@ -300,6 +313,26 @@ Answer:"""
                 MATCH (n:Entity {user_id: $user_id})
                 DETACH DELETE n
             """, user_id=user_id)
+            
+            # Also delete Document nodes for this user
+            session.run("""
+                MATCH (d:Document {user_id: $user_id})
+                DELETE d
+            """, user_id=user_id)
+    
+    def get_knowledge_base(self, user_id: str = "demo_user") -> List[Dict]:
+        """Get all stored knowledge paragraphs for a specific user"""
+        with self.neo4j.get_session() as session:
+            result = session.run("""
+                MATCH (d:Document {user_id: $user_id})
+                RETURN d.text AS text, d.timestamp AS timestamp
+                ORDER BY d.timestamp DESC
+            """, user_id=user_id)
+            return [{
+                "text": record["text"],
+                "timestamp": record["timestamp"]
+            } for record in result]
+
 
 
 

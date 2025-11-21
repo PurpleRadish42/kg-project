@@ -39,8 +39,10 @@ def register():
         user = db_service.create_user(username, email, password)
         
         if user:
-            flash("Registration successful! Please log in.", "success")
-            return redirect(url_for("auth.login"))
+            # Automatically log in the user after successful registration
+            login_user(user)
+            flash("Welcome! Your account has been created successfully.", "success")
+            return redirect(url_for("web.index"))
         else:
             flash("Username or email already exists.", "error")
             return render_template("auth/register.html")
@@ -69,6 +71,7 @@ def login():
         
         if user and user.check_password(password):
             login_user(user, remember=remember)
+            flash("You've successfully logged in!", "success")
             next_page = request.args.get("next")
             return redirect(next_page) if next_page else redirect(url_for("web.index"))
         else:
