@@ -332,6 +332,101 @@ Answer:"""
                 "text": record["text"],
                 "timestamp": record["timestamp"]
             } for record in result]
+    
+    def generate_interactive_graph(self, user_id: str = "demo_user") -> str:
+        """Generate an interactive graph visualization using Pyvis"""
+        from pyvis.network import Network
+        import networkx as nx
+        
+        # Create NetworkX graph
+        G = nx.Graph()
+        
+        # Get entities and relationships
+        entities = self.get_all_entities(user_id=user_id)
+        relationships = self.get_all_relationships(user_id=user_id)
+        
+        # Add nodes
+        for entity in entities:
+            G.add_node(entity["name"], 
+                      title=f"{entity['name']}\nType: {entity['type']}", 
+                      type=entity["type"])
+        
+        # Add edges
+        for rel in relationships:
+            G.add_edge(rel["source"], rel["target"], 
+                      title=rel["type"], 
+                      label=rel["type"])
+        
+        # Create Pyvis network
+        net = Network(height="600px", width="100%", bgcolor="#f5f3ef", font_color="#2c2416")
+        
+        # Configure physics for better interactivity
+        net.set_options("""
+        {
+          "nodes": {
+            "borderWidth": 2,
+            "borderWidthSelected": 3,
+            "color": {
+              "border": "#2c2416",
+              "background": "#ffffff",
+              "highlight": {
+                "border": "#d46a38",
+                "background": "#fef5f0"
+              }
+            },
+            "font": {
+              "color": "#2c2416",
+              "size": 14,
+              "face": "Tiempos Text, serif"
+            },
+            "shape": "dot",
+            "size": 25
+          },
+          "edges": {
+            "color": {
+              "color": "#2c2416",
+              "highlight": "#d46a38"
+            },
+            "font": {
+              "color": "#2c2416",
+              "size": 12,
+              "face": "Inter, sans-serif"
+            },
+            "smooth": {
+              "type": "continuous"
+            },
+            "width": 2
+          },
+          "physics": {
+            "enabled": true,
+            "barnesHut": {
+              "gravitationalConstant": -8000,
+              "centralGravity": 0.3,
+              "springLength": 150,
+              "springConstant": 0.04,
+              "damping": 0.09
+            },
+            "stabilization": {
+              "iterations": 200
+            }
+          },
+          "interaction": {
+            "hover": true,
+            "tooltipDelay": 100,
+            "dragNodes": true,
+            "dragView": true,
+            "zoomView": true
+          }
+        }
+        """)
+        
+        # Convert NetworkX graph to Pyvis
+        net.from_nx(G)
+        
+        # Generate HTML
+        html = net.generate_html()
+        
+        return html
 
 
 

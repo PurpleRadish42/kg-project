@@ -76,14 +76,12 @@ def view_graph():
     """View knowledge graph"""
     kg_service = KnowledgeGraphService()
     try:
-        entities = kg_service.get_all_entities(user_id=current_user.username)
-        relationships = kg_service.get_all_relationships(user_id=current_user.username)
+        graph_html = kg_service.generate_interactive_graph(user_id=current_user.username)
     except Exception as e:
-        flash(f"Error fetching graph data: {str(e)}", "error")
-        entities = []
-        relationships = []
+        flash(f"Error generating graph: {str(e)}", "error")
+        graph_html = None
         
-    return render_template("graph.html", entities=entities, relationships=relationships)
+    return render_template("graph.html", graph_html=graph_html)
 
 
 @bp.route("/clear", methods=["POST"])

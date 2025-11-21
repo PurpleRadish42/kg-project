@@ -1,101 +1,76 @@
 {% extends "base.html" %}
 
-{% block title %}View Graph - Knowledge Graph AI{% endblock %}
+{% block title %}Graph View - KG AI{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2><i class="fas fa-sitemap me-2"></i>Knowledge Graph</h2>
-            <form method="POST" action="{{ url_for('web.clear_database') }}" onsubmit="return confirm('Are you sure you want to clear all data? This cannot be undone.');">
-                <button type="submit" class="btn btn-danger">
-                    <i class="fas fa-trash me-1"></i>Clear Database
-                </button>
-            </form>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1><i class="fas fa-project-diagram me-3"></i>Knowledge Graph</h1>
+                    <p class="text-muted">Interactive visualization of your knowledge network</p>
+                </div>
+                <form method="POST" action="{{ url_for('web.clear_database') }}"
+                    onsubmit="return confirm('Are you sure you want to clear all data? This cannot be undone.');">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Clear Database
+                    </button>
+                </form>
+            </div>
         </div>
+    </div>
 
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-cube me-2"></i>Entities ({{ entities|length }})
-                        </h5>
-                    </div>
-                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
-                        {% if entities %}
-                            <div class="list-group">
-                                {% for entity in entities %}
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-1">{{ entity.name }}</h6>
-                                            <small class="text-muted">
-                                                <span class="badge bg-info">{{ entity.type }}</span>
-                                            </small>
-                                            {% if entity.properties %}
-                                                <div class="mt-2">
-                                                    {% for key, value in entity.properties.items() %}
-                                                        {% if key not in ['name', 'type', 'last_updated', 'source'] %}
-                                                            <small class="d-block text-muted">
-                                                                <strong>{{ key }}:</strong> {{ value }}
-                                                            </small>
-                                                        {% endif %}
-                                                    {% endfor %}
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-muted text-center">No entities found. Add some knowledge first!</p>
-                        {% endif %}
+    {% if graph_html %}
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="graph-container">
+                        {{ graph_html|safe }}
                     </div>
                 </div>
             </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-project-diagram me-2"></i>Relationships ({{ relationships|length }})
-                        </h5>
-                    </div>
-                    <div class="card-body" style="max-height: 500px; overflow-y: auto;">
-                        {% if relationships %}
-                            <div class="list-group">
-                                {% for rel in relationships %}
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div>
-                                            <h6 class="mb-1">
-                                                <span class="badge bg-secondary">{{ rel.source }}</span>
-                                                <i class="fas fa-arrow-right mx-2"></i>
-                                                <span class="badge bg-primary">{{ rel.type }}</span>
-                                                <i class="fas fa-arrow-right mx-2"></i>
-                                                <span class="badge bg-secondary">{{ rel.target }}</span>
-                                            </h6>
-                                            {% if rel.timestamp %}
-                                                <small class="text-muted">
-                                                    <i class="fas fa-clock me-1"></i>{{ rel.timestamp }}
-                                                </small>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-muted text-center">No relationships found. Add some knowledge first!</p>
-                        {% endif %}
-                    </div>
+            <div class="mt-3">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Tip:</strong> Drag nodes to rearrange them, scroll to zoom, and click & drag the background
+                    to pan around the graph.
                 </div>
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="row">
+        <div class="col-md-8 offset-md-2 text-center py-5">
+            <div class="card">
+                <div class="card-body py-5">
+                    <i class="fas fa-project-diagram fa-4x text-muted mb-4"></i>
+                    <h3 class="mb-3">No Graph Data Available</h3>
+                    <p class="text-muted mb-4">
+                        Add some knowledge to see your interactive graph visualization.
+                    </p>
+                    <a href="{{ url_for('web.knowledge_base') }}" class="btn btn-primary">
+                        <i class="fas fa-book me-2"></i>Go to Knowledge Base
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+<style>
+    .graph-container {
+        background: #f5f3ef;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .graph-container iframe {
+        border: none;
+        width: 100%;
+        min-height: 600px;
+    }
+</style>
 {% endblock %}
-
-
