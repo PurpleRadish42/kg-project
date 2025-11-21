@@ -29,6 +29,12 @@ class Config:
     POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
     
+    # MongoDB Configuration (for chat history)
+    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
+    MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "kg_chat_history")
+    MONGODB_USERNAME = os.getenv("MONGODB_USERNAME", "")
+    MONGODB_PASSWORD = os.getenv("MONGODB_PASSWORD", "")
+    
     # Application Configuration
     DEBUG = os.getenv("FLASK_DEBUG", "False").lower() == "true"
 
