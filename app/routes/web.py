@@ -17,6 +17,20 @@ def index():
     return render_template("welcome.html")
 
 
+@bp.route("/knowledge-base")
+@login_required
+def knowledge_base():
+    """Knowledge base page showing all stored knowledge"""
+    kg_service = KnowledgeGraphService()
+    try:
+        knowledge_items = kg_service.get_knowledge_base(user_id=current_user.username)
+    except Exception as e:
+        flash(f"Error fetching knowledge base: {str(e)}", "error")
+        knowledge_items = []
+    
+    return render_template("knowledge_base.html", knowledge_items=knowledge_items)
+
+
 @bp.route("/add", methods=["GET", "POST"])
 @login_required
 def add_knowledge():

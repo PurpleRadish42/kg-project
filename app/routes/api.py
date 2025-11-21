@@ -158,3 +158,24 @@ def get_relationships():
         }), 500
 
 
+@bp.route("/clear-demo", methods=["POST"])
+def clear_demo():
+    """Clear demo user's knowledge graph data"""
+    try:
+        kg_service = KnowledgeGraphService()
+        kg_service.clear_database(user_id="demo_user")
+        return jsonify({"success": True, "message": "Demo data cleared"}), 200
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        error_msg = str(e)
+        print(f"\n{'='*60}")
+        print(f"ERROR in clear_demo:")
+        print(f"Message: {error_msg}")
+        print(f"Traceback:\n{error_trace}")
+        print(f"{'='*60}\n")
+        return jsonify({
+            "error": error_msg,
+            "details": error_trace if app.config.get("DEBUG") else "Enable DEBUG mode for details"
+        }), 500
+

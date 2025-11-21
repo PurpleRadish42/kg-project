@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Knowledge Base - KG AI{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1><i class="fas fa-book me-3"></i>Knowledge Base</h1>
+            <p class="text-muted">All the knowledge you've stored in your graph</p>
+        </div>
+    </div>
+
+    {% if knowledge_items %}
+        <div class="row">
+            <div class="col">
+                {% for item in knowledge_items %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-file-alt text-muted me-2"></i>
+                                    Knowledge Entry
+                                </h5>
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {{ item.timestamp[:10] }} {{ item.timestamp[11:19] }}
+                                </small>
+                            </div>
+                            <p class="card-text" style="white-space: pre-wrap; line-height: 1.8;">{{ item.text }}</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-md-8 offset-md-2 text-center py-5">
+                <div class="card">
+                    <div class="card-body py-5">
+                        <i class="fas fa-book-open fa-4x text-muted mb-4"></i>
+                        <h3 class="mb-3">Your Knowledge Base is Empty</h3>
+                        <p class="text-muted mb-4">
+                            Start building your knowledge graph by adding some text.
+                        </p>
+                        <a href="{{ url_for('web.add_knowledge') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Add Knowledge
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
