@@ -113,9 +113,7 @@ body {
 .main-content {
     flex: 1;
     margin-left: 260px; /* Match sidebar width */
-    padding: 2rem 4rem;
-    max-width: 1200px;
-    margin-right: auto; /* Center content if screen is very wide */
+    padding: 2rem 3rem;
     width: calc(100% - 260px);
 }
 
