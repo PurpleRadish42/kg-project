@@ -30,9 +30,19 @@ class MongoService:
         password = current_app.config.get("MONGODB_PASSWORD", "")
         base_uri = current_app.config.get("MONGODB_URI", "mongodb://localhost:27017/")
         
+        # Handle authentication for both mongodb:// and mongodb+srv:// URIs
         if username and password:
-            # Insert credentials into URI
-            uri = base_uri.replace("mongodb://", f"mongodb://{username}:{password}@")
+            # Check if URI already contains credentials
+            if "@" not in base_uri:
+                # Handle mongodb+srv:// (DigitalOcean)
+                if "mongodb+srv://" in base_uri:
+                    uri = base_uri.replace("mongodb+srv://", f"mongodb+srv://{username}:{password}@")
+                # Handle mongodb:// (local)
+                else:
+                    uri = base_uri.replace("mongodb://", f"mongodb://{username}:{password}@")
+            else:
+                # URI already has credentials embedded
+                uri = base_uri
         else:
             uri = base_uri
         
