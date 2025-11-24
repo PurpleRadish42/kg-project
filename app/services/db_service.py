@@ -22,13 +22,22 @@ class DatabaseService:
     def _init_pool(self):
         """Create connection pool"""
         try:
+            # Build connection parameters
+            conn_params = {
+                'host': current_app.config["POSTGRES_HOST"],
+                'port': current_app.config["POSTGRES_PORT"],
+                'database': current_app.config["POSTGRES_DB"],
+                'user': current_app.config["POSTGRES_USER"],
+                'password': current_app.config["POSTGRES_PASSWORD"]
+            }
+            
+            # Add SSL mode if specified (required for DigitalOcean)
+            if current_app.config.get("POSTGRES_SSLMODE"):
+                conn_params['sslmode'] = current_app.config["POSTGRES_SSLMODE"]
+            
             self.connection_pool = psycopg2.pool.SimpleConnectionPool(
                 1, 10,
-                host=current_app.config["POSTGRES_HOST"],
-                port=current_app.config["POSTGRES_PORT"],
-                database=current_app.config["POSTGRES_DB"],
-                user=current_app.config["POSTGRES_USER"],
-                password=current_app.config["POSTGRES_PASSWORD"]
+                **conn_params
             )
         except Exception as e:
             print(f"Error creating connection pool: {e}")

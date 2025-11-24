@@ -2,6 +2,7 @@
 .env
 .flaskenv
 
+
 # Python
 __pycache__/
 *.py[cod]
@@ -38,3 +39,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+#Stuff
+.env.db
+*crt
+mongo_backup/
+*.sql

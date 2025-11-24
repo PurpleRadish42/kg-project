@@ -28,6 +28,7 @@ class Config:
     POSTGRES_DB = os.getenv("POSTGRES_DB", "kg_users")
     POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
     POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "password")
+    POSTGRES_SSLMODE = os.getenv("POSTGRES_SSLMODE", "require") 
     
     # MongoDB Configuration (for chat history)
     MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
