@@ -172,6 +172,70 @@
         </div>
         {% endif %}
     </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // Toast Notification System
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toastContainer');
+
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            // Icon based on type
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <i class="fas ${icons[type]} toast-icon"></i>
+                    <div class="toast-message">${message}</div>
+                    <i class="fas fa-times toast-close"></i>
+                </div>
+                <div class="toast-progress">
+                    <div class="toast-progress-bar"></div>
+                </div>
+            `;
+
+            container.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Auto dismiss after 4 seconds
+            const dismissTimeout = setTimeout(() => dismissToast(toast), 4000);
+
+            // Manual dismiss on click
+            toast.addEventListener('click', () => {
+                clearTimeout(dismissTimeout);
+                dismissToast(toast);
+            });
+        }
+
+        function dismissToast(toast) {
+            toast.classList.remove('show');
+            toast.classList.add('hide');
+            setTimeout(() => toast.remove(), 300);
+        }
+
+        // Show flash messages as toasts
+        {% with messages = get_flashed_messages(with_categories = true) %}
+        {% if messages %}
+        document.addEventListener('DOMContentLoaded', function () {
+            {% for category, message in messages %}
+            showToast('{{ message }}', '{{ 'error' if category == 'error' else category }}');
+            {% endfor %}
+        });
+        {% endif %}
+        {% endwith %}
+    </script>
 </body>
 
 </html>
