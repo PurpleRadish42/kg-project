@@ -9,12 +9,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 class User(UserMixin):
     """User model for Flask-Login"""
     
-    def __init__(self, user_id, username, email, password_hash=None, full_name=None):
+    def __init__(self, user_id, username, email, password_hash=None, full_name=None, email_verified=False):
         self.id = user_id
         self.username = username
         self.email = email
         self.password_hash = password_hash
         self.full_name = full_name
+        self.email_verified = email_verified
     
     def get_first_name(self):
         """Get the first name from full_name, or fallback to username"""
