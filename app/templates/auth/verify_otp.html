@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Email - Knowledge Graph AI{% endblock %}
+
+{% block extra_head %}
+<style>
+    .otp-container {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 2rem 0;
+    }
+
+    .otp-input {
+        width: 52px;
+        height: 60px;
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        background: white;
+        transition: all 0.2s ease;
+        color: var(--text-primary);
+    }
+
+    .otp-input:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
+    }
+
+    .otp-input.filled {
+        border-color: var(--accent-color);
+        background: #FDF8F5;
+    }
+
+    .otp-input.error {
+        border-color: #dc3545;
+        animation: shake 0.5s ease;
+    }
+
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+
+    .timer-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: #FDF8F5;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        color: var(--accent-color);
+        font-weight: 500;
+    }
+
+    .timer-badge.expired {
+        background: #fef2f2;
+        color: #dc3545;
+    }
+
+    .resend-btn {
+        background: none;
+        border: none;
+        color: var(--accent-color);
+        font-weight: 500;
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.9rem;
+        transition: color 0.2s;
+    }
+
+    .resend-btn:hover:not(:disabled) {
+        color: var(--accent-hover);
+        text-decoration: underline;
+    }
+
+    .resend-btn:disabled {
+        color: #8b8680;
+        cursor: not-allowed;
+    }
+
+    .email-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: #f5f5f4;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .verify-icon {
+        width: 64px;
+        height: 64px;
+        background: linear-gradient(135deg, #FDF8F5 0%, #FAF9F5 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 450px; margin-top: 2rem;">
+    <div class="card">
+        <div class="card-body p-4">
+            <div class="text-center">
+                <div class="verify-icon">
+                    📧
+                </div>
+                <h1 class="h3 mb-2">Check your email</h1>
+                <p class="text-muted mb-3">We've sent a 6-digit verification code to</p>
+                <div class="email-badge mb-4">
+                    <i class="fas fa-envelope"></i>
+                    <span>{{ email }}</span>
+                </div>
+            </div>
+
+            <form method="POST" id="otpForm">
+                <div class="otp-container">
+                    <input type="text" maxlength="1" class="otp-input" data-index="0" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code">
+                    <input type="text" maxlength="1" class="otp-input" data-index="1" inputmode="numeric" pattern="[0-9]">
+                    <input type="text" maxlength="1" class="otp-input" data-index="2" inputmode="numeric" pattern="[0-9]">
+                    <input type="text" maxlength="1" class="otp-input" data-index="3" inputmode="numeric" pattern="[0-9]">
+                    <input type="text" maxlength="1" class="otp-input" data-index="4" inputmode="numeric" pattern="[0-9]">
+                    <input type="text" maxlength="1" class="otp-input" data-index="5" inputmode="numeric" pattern="[0-9]">
+                </div>
+                
+                <!-- Hidden input for form submission -->
+                <input type="hidden" name="otp" id="otpHidden">
+
+                <!-- Timer -->
+                <div class="text-center mb-4">
+                    <div class="timer-badge" id="timerBadge">
+                        <i class="fas fa-clock"></i>
+                        <span id="timerText">Code expires in <strong id="countdown">3:00</strong></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mb-3" id="verifyBtn">
+                    Verify Email
+                </button>
+            </form>
+
+            <div class="text-center">
+                <p class="text-muted mb-2">Didn't receive the code?</p>
+                <form action="{{ url_for('auth.resend_otp') }}" method="POST" class="d-inline">
+                    <button type="submit" class="resend-btn" id="resendBtn">
+                        Resend Code
+                    </button>
+                </form>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="text-center">
+                <a href="{{ url_for('auth.register') }}" class="text-muted text-decoration-none" style="font-size: 0.875rem;">
+                    <i class="fas fa-arrow-left me-1"></i> Back to registration
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const otpInputs = document.querySelectorAll('.otp-input');
+        const otpHidden = document.getElementById('otpHidden');
+        const otpForm = document.getElementById('otpForm');
+        const timerBadge = document.getElementById('timerBadge');
+        const countdown = document.getElementById('countdown');
+        const timerText = document.getElementById('timerText');
+        const verifyBtn = document.getElementById('verifyBtn');
+        
+        // Initialize timer
+        let remainingSeconds = {{ remaining_seconds | default(180) }};
+        
+        function updateTimer() {
+            if (remainingSeconds <= 0) {
+                timerBadge.classList.add('expired');
+                timerText.innerHTML = '<strong>Code expired</strong> - request a new one';
+                return;
+            }
+            
+            const minutes = Math.floor(remainingSeconds / 60);
+            const seconds = remainingSeconds % 60;
+            countdown.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            remainingSeconds--;
+            setTimeout(updateTimer, 1000);
+        }
+        
+        updateTimer();
+        
+        // OTP input handling
+        otpInputs.forEach((input, index) => {
+            // Handle input
+            input.addEventListener('input', function(e) {
+                const value = e.target.value;
+                
+                // Only allow numbers
+                if (!/^\d*$/.test(value)) {
+                    e.target.value = '';
+                    return;
+                }
+                
+                // Update filled state
+                if (value) {
+                    input.classList.add('filled');
+                    // Move to next input
+                    if (index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                } else {
+                    input.classList.remove('filled');
+                }
+                
+                // Update hidden input
+                updateHiddenOtp();
+            });
+            
+            // Handle backspace
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    otpInputs[index - 1].focus();
+                    otpInputs[index - 1].value = '';
+                    otpInputs[index - 1].classList.remove('filled');
+                }
+                
+                // Handle Enter
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    otpForm.dispatchEvent(new Event('submit'));
+                }
+            });
+            
+            // Handle paste
+            input.addEventListener('paste', function(e) {
+                e.preventDefault();
+                const pastedData = (e.clipboardData || window.clipboardData).getData('text');
+                const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+                
+                digits.split('').forEach((digit, i) => {
+                    if (otpInputs[i]) {
+                        otpInputs[i].value = digit;
+                        otpInputs[i].classList.add('filled');
+                    }
+                });
+                
+                // Focus last filled or next empty
+                const focusIndex = Math.min(digits.length, otpInputs.length - 1);
+                otpInputs[focusIndex].focus();
+                
+                updateHiddenOtp();
+            });
+        });
+        
+        function updateHiddenOtp() {
+            let otp = '';
+            otpInputs.forEach(input => {
+                otp += input.value;
+            });
+            otpHidden.value = otp;
+        }
+        
+        // Form submission
+        otpForm.addEventListener('submit', function(e) {
+            updateHiddenOtp();
+            
+            if (otpHidden.value.length !== 6) {
+                e.preventDefault();
+                otpInputs.forEach(input => {
+                    if (!input.value) {
+                        input.classList.add('error');
+                        setTimeout(() => input.classList.remove('error'), 500);
+                    }
+                });
+                showToast('Please enter all 6 digits', 'error');
+                return;
+            }
+        });
+        
+        // Focus first input
+        otpInputs[0].focus();
+    });
+</script>
+{% endblock %}
+

@@ -59,6 +59,11 @@ class DatabaseService:
                         google_id VARCHAR(255) UNIQUE,
                         profile_picture VARCHAR(512),
                         auth_provider VARCHAR(50) DEFAULT 'local',
+                        email_verified BOOLEAN DEFAULT FALSE,
+                        otp_code VARCHAR(64),
+                        otp_expires_at TIMESTAMP,
+                        otp_attempts INTEGER DEFAULT 0,
+                        otp_last_sent_at TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
@@ -106,6 +111,47 @@ class DatabaseService:
                 except Exception as e:
                     print(f"Note: auth_provider column already exists or error: {e}")
                 
+                # Add OTP verification columns if they don't exist
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE
+                    """)
+                except Exception as e:
+                    print(f"Note: email_verified column already exists or error: {e}")
+                
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS otp_code VARCHAR(64)
+                    """)
+                except Exception as e:
+                    print(f"Note: otp_code column already exists or error: {e}")
+                
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMP
+                    """)
+                except Exception as e:
+                    print(f"Note: otp_expires_at column already exists or error: {e}")
+                
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS otp_attempts INTEGER DEFAULT 0
+                    """)
+                except Exception as e:
+                    print(f"Note: otp_attempts column already exists or error: {e}")
+                
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS otp_last_sent_at TIMESTAMP
+                    """)
+                except Exception as e:
+                    print(f"Note: otp_last_sent_at column already exists or error: {e}")
+                
                 # Create knowledge_bases table
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS knowledge_bases (
@@ -121,19 +167,19 @@ class DatabaseService:
         finally:
             self.connection_pool.putconn(conn)
     
-    def create_user(self, username, email, password):
+    def create_user(self, username, email, password, email_verified=False):
         """Create a new user"""
         conn = self.connection_pool.getconn()
         try:
             with conn.cursor() as cursor:
                 password_hash = generate_password_hash(password)
                 cursor.execute(
-                    "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
-                    (username, email, password_hash)
+                    "INSERT INTO users (username, email, password_hash, email_verified) VALUES (%s, %s, %s, %s) RETURNING id",
+                    (username, email, password_hash, email_verified)
                 )
                 user_id = cursor.fetchone()[0]
                 conn.commit()
-                return User(user_id, username, email, password_hash)
+                return User(user_id, username, email, password_hash, email_verified=email_verified)
         except psycopg2.IntegrityError:
             conn.rollback()
             return None
@@ -146,12 +192,12 @@ class DatabaseService:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, username, email, password_hash, full_name FROM users WHERE id = %s",
+                    "SELECT id, username, email, password_hash, full_name, email_verified FROM users WHERE id = %s",
                     (user_id,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    return User(row[0], row[1], row[2], row[3], row[4])
+                    return User(row[0], row[1], row[2], row[3], row[4], row[5] if row[5] is not None else False)
                 return None
         finally:
             self.connection_pool.putconn(conn)
@@ -162,12 +208,12 @@ class DatabaseService:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, username, email, password_hash, full_name FROM users WHERE username = %s",
+                    "SELECT id, username, email, password_hash, full_name, email_verified FROM users WHERE username = %s",
                     (username,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    return User(row[0], row[1], row[2], row[3], row[4])
+                    return User(row[0], row[1], row[2], row[3], row[4], row[5] if row[5] is not None else False)
                 return None
         finally:
             self.connection_pool.putconn(conn)
@@ -178,12 +224,12 @@ class DatabaseService:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, username, email, password_hash, full_name FROM users WHERE email = %s",
+                    "SELECT id, username, email, password_hash, full_name, email_verified FROM users WHERE email = %s",
                     (email,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    return User(row[0], row[1], row[2], row[3], row[4])
+                    return User(row[0], row[1], row[2], row[3], row[4], row[5] if row[5] is not None else False)
                 return None
         finally:
             self.connection_pool.putconn(conn)
@@ -334,9 +380,9 @@ class DatabaseService:
                     counter += 1
                 
                 cursor.execute("""
-                    INSERT INTO users (username, email, full_name, google_id, profile_picture, auth_provider)
-                    VALUES (%s, %s, %s, %s, %s, 'google')
-                    RETURNING id, username, email, password_hash, full_name
+                    INSERT INTO users (username, email, full_name, google_id, profile_picture, auth_provider, email_verified)
+                    VALUES (%s, %s, %s, %s, %s, 'google', TRUE)
+                    RETURNING id, username, email, password_hash, full_name, email_verified
                 """, (username, email, name, google_id, picture))
                 
                 result = cursor.fetchone()
@@ -348,7 +394,8 @@ class DatabaseService:
                         username=result[1],
                         email=result[2],
                         password_hash=result[3],
-                        full_name=result[4]
+                        full_name=result[4],
+                        email_verified=result[5] if result[5] is not None else True
                     )
                 return None
         except Exception as e:
@@ -416,6 +463,137 @@ class DatabaseService:
         except psycopg2.IntegrityError:
             conn.rollback()
             return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    # OTP Methods
+    def save_otp(self, user_id: int, otp_hash: str, expires_at):
+        """Save OTP hash and expiry for a user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users
+                    SET otp_code = %s, otp_expires_at = %s, otp_attempts = 0, otp_last_sent_at = NOW()
+                    WHERE id = %s
+                """, (otp_hash, expires_at, user_id))
+                conn.commit()
+                return True
+        except Exception as e:
+            conn.rollback()
+            print(f"Error saving OTP: {e}")
+            return False
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def get_otp_data(self, user_id: int):
+        """Get OTP data for a user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT otp_code, otp_expires_at, otp_attempts, otp_last_sent_at
+                    FROM users WHERE id = %s
+                """, (user_id,))
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        'otp_hash': row[0],
+                        'expires_at': row[1],
+                        'attempts': row[2] or 0,
+                        'last_sent_at': row[3]
+                    }
+                return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def increment_otp_attempts(self, user_id: int):
+        """Increment OTP attempt count"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users
+                    SET otp_attempts = COALESCE(otp_attempts, 0) + 1
+                    WHERE id = %s
+                    RETURNING otp_attempts
+                """, (user_id,))
+                result = cursor.fetchone()
+                conn.commit()
+                return result[0] if result else 0
+        except Exception as e:
+            conn.rollback()
+            print(f"Error incrementing OTP attempts: {e}")
+            return 0
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def clear_otp(self, user_id: int):
+        """Clear OTP data after successful verification or max attempts"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users
+                    SET otp_code = NULL, otp_expires_at = NULL, otp_attempts = 0
+                    WHERE id = %s
+                """, (user_id,))
+                conn.commit()
+                return True
+        except Exception as e:
+            conn.rollback()
+            print(f"Error clearing OTP: {e}")
+            return False
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def mark_email_verified(self, user_id: int):
+        """Mark user's email as verified"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users
+                    SET email_verified = TRUE, otp_code = NULL, otp_expires_at = NULL, otp_attempts = 0
+                    WHERE id = %s
+                    RETURNING id, username, email, password_hash, full_name, email_verified
+                """, (user_id,))
+                result = cursor.fetchone()
+                conn.commit()
+                if result:
+                    return User(
+                        user_id=result[0],
+                        username=result[1],
+                        email=result[2],
+                        password_hash=result[3],
+                        full_name=result[4],
+                        email_verified=result[5]
+                    )
+                return None
+        except Exception as e:
+            conn.rollback()
+            print(f"Error marking email verified: {e}")
+            return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def can_resend_otp(self, user_id: int, cooldown_seconds: int = 30):
+        """Check if OTP can be resent (cooldown check)"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT otp_last_sent_at FROM users WHERE id = %s
+                """, (user_id,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    from datetime import datetime, timedelta
+                    last_sent = row[0]
+                    now = datetime.utcnow()
+                    if now < last_sent + timedelta(seconds=cooldown_seconds):
+                        remaining = (last_sent + timedelta(seconds=cooldown_seconds) - now).seconds
+                        return False, remaining
+                return True, 0
         finally:
             self.connection_pool.putconn(conn)
     

@@ -38,6 +38,17 @@ class Config:
     
     # Application Configuration
     DEBUG = os.getenv("FLASK_DEBUG", "False").lower() == "true"
+    
+    # SMTP Configuration (Gmail)
+    SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_EMAIL = os.getenv("SMTP_EMAIL", "")
+    SMTP_APP_PASSWORD = os.getenv("SMTP_APP_PASSWORD", "")
+    
+    # OTP Configuration
+    OTP_EXPIRY_MINUTES = int(os.getenv("OTP_EXPIRY_MINUTES", "3"))
+    OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "3"))
+    OTP_RESEND_COOLDOWN_SECONDS = int(os.getenv("OTP_RESEND_COOLDOWN_SECONDS", "30"))
 
 
 class DevelopmentConfig(Config):
