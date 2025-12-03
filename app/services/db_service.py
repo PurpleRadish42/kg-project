@@ -44,10 +44,11 @@ class DatabaseService:
             raise
     
     def _init_tables(self):
-        """Create users table if it doesn't exist"""
+        """Create users and knowledge_bases tables if they don't exist"""
         conn = self.connection_pool.getconn()
         try:
             with conn.cursor() as cursor:
+                # Create users table
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS users (
                         id SERIAL PRIMARY KEY,
@@ -55,6 +56,18 @@ class DatabaseService:
                         email VARCHAR(120) UNIQUE NOT NULL,
                         password_hash VARCHAR(255) NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Create knowledge_bases table
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS knowledge_bases (
+                        id SERIAL PRIMARY KEY,
+                        user_id VARCHAR(80) NOT NULL,
+                        name VARCHAR(255) NOT NULL,
+                        description TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(user_id, name)
                     )
                 """)
                 conn.commit()
@@ -125,6 +138,79 @@ class DatabaseService:
                 if row:
                     return User(row[0], row[1], row[2], row[3])
                 return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def create_knowledge_base(self, user_id, name, description=""):
+        """Create a new knowledge base for a user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO knowledge_bases (user_id, name, description) VALUES (%s, %s, %s) RETURNING id",
+                    (user_id, name, description)
+                )
+                kb_id = cursor.fetchone()[0]
+                conn.commit()
+                return kb_id
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def get_user_knowledge_bases(self, user_id):
+        """Get all knowledge bases for a user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, name, description, created_at FROM knowledge_bases WHERE user_id = %s ORDER BY created_at DESC",
+                    (user_id,)
+                )
+                rows = cursor.fetchall()
+                return [{
+                    "id": row[0],
+                    "name": row[1],
+                    "description": row[2],
+                    "created_at": row[3].isoformat() if row[3] else None
+                } for row in rows]
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def get_knowledge_base_by_id(self, kb_id, user_id):
+        """Get a specific knowledge base by ID (verifies user ownership)"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, name, description, created_at FROM knowledge_bases WHERE id = %s AND user_id = %s",
+                    (kb_id, user_id)
+                )
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row[0],
+                        "name": row[1],
+                        "description": row[2],
+                        "created_at": row[3].isoformat() if row[3] else None
+                    }
+                return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def delete_knowledge_base(self, kb_id, user_id):
+        """Delete a knowledge base (verifies user ownership)"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    "DELETE FROM knowledge_bases WHERE id = %s AND user_id = %s",
+                    (kb_id, user_id)
+                )
+                deleted = cursor.rowcount > 0
+                conn.commit()
+                return deleted
         finally:
             self.connection_pool.putconn(conn)
     

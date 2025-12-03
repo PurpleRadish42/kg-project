@@ -156,6 +156,18 @@
             <div class="modal-body">
                 <form id="addKnowledgeForm">
                     <div class="mb-3">
+                        <label for="kbSelect" class="form-label">Knowledge Base</label>
+                        <div class="d-flex gap-2">
+                            <select class="form-select" id="kbSelect" required>
+                                <option value="">Loading...</option>
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal"
+                                data-bs-target="#createKBModal" data-bs-dismiss="modal">
+                                <i class="fas fa-plus"></i> New
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
                         <label for="knowledgeText" class="form-label">Enter your text</label>
                         <textarea class="form-control" id="knowledgeText" rows="8"
                             placeholder="Enter any text containing information you'd like to store in your knowledge graph..."
@@ -176,19 +188,152 @@
         </div>
     </div>
 </div>
+
+<!-- Create KB Modal -->
+<div class="modal fade" id="createKBModal" tabindex="-1" aria-labelledby="createKBModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createKBModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>Create Knowledge Base
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createKBForm">
+                    <div class="mb-3">
+                        <label for="kbName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="kbName" placeholder="e.g., Personal, Work, Study"
+                            required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="kbDescription" class="form-label">Description (optional)</label>
+                        <textarea class="form-control" id="kbDescription" rows="2"
+                            placeholder="Brief description of this knowledge base"></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="createKBBtn">
+                            <i class="fas fa-check me-2"></i>Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
+    let knowledgeBases = [];
+
+    // Load KBs on page load
+    loadKnowledgeBases();
+
+    async function loadKnowledgeBases() {
+        try {
+            const response = await fetch('/api/kb/list');
+            const data = await response.json();
+
+            if (data.success && data.knowledge_bases) {
+                knowledgeBases = data.knowledge_bases;
+                updateKBSelector();
+            }
+        } catch (error) {
+            console.error('Error loading knowledge bases:', error);
+        }
+    }
+
+    function updateKBSelector() {
+        const kbSelect = document.getElementById('kbSelect');
+        kbSelect.innerHTML = '';
+
+        if (knowledgeBases.length === 0) {
+            kbSelect.innerHTML = '<option value="">No knowledge bases yet</option>';
+        } else {
+            knowledgeBases.forEach(kb => {
+                const option = document.createElement('option');
+                option.value = kb.id;
+                option.textContent = kb.name;
+                kbSelect.appendChild(option);
+            });
+        }
+    }
+
+    // Create KB form handler
+    document.getElementById('createKBForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const createBtn = document.getElementById('createKBBtn');
+        const name = document.getElementById('kbName').value.trim();
+        const description = document.getElementById('kbDescription').value.trim();
+
+        if (!name) {
+            alert('Please enter a name');
+            return;
+        }
+
+        createBtn.disabled = true;
+        createBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+
+        try {
+            const response = await fetch('/api/kb/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, description })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create knowledge base');
+            }
+
+            const result = await response.json();
+
+            // Close the modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createKBModal'));
+            modal.hide();
+
+            // Clear form
+            document.getElementById('kbName').value = '';
+            document.getElementById('kbDescription').value = '';
+
+            // Reload KBs
+            await loadKnowledgeBases();
+
+            // Reopen the add knowledge modal and select the new KB
+            const addModal = new bootstrap.Modal(document.getElementById('addKnowledgeModal'));
+            addModal.show();
+            document.getElementById('kbSelect').value = result.kb_id;
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+        } finally {
+            createBtn.disabled = false;
+            createBtn.innerHTML = '<i class="fas fa-check me-2"></i>Create';
+        }
+    });
+
     document.getElementById('addKnowledgeForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
         const submitBtn = document.getElementById('submitBtn');
         const textArea = document.getElementById('knowledgeText');
+        const kbSelect = document.getElementById('kbSelect');
         const text = textArea.value.trim();
+        const kb_id = kbSelect.value;
 
         if (!text) {
             alert('Please enter some text');
+            return;
+        }
+
+        if (!kb_id) {
+            alert('Please select a knowledge base');
             return;
         }
 
@@ -203,7 +348,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ text: text })
+                body: JSON.stringify({ text: text, kb_id: parseInt(kb_id) })
             });
 
             if (!response.ok) {
@@ -232,6 +377,11 @@
         const submitBtn = document.getElementById('submitBtn');
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-save me-2"></i>Store Knowledge';
+    });
+
+    // Reload KBs when opening add modal
+    document.getElementById('addKnowledgeModal').addEventListener('show.bs.modal', function () {
+        loadKnowledgeBases();
     });
 </script>
 {% endblock %}

@@ -562,8 +562,25 @@
             // Hide typing indicator
             typingIndicator.classList.remove('active');
 
-            // Add AI response
-            addMessage(data.answer, 'ai');
+            // Add AI response - now supports multi-KB results
+            if (data.results && Array.isArray(data.results)) {
+                // Multi-KB response
+                if (data.results.length === 1) {
+                    // Single result - display without KB header if it's "No Results" or "No Knowledge Base"
+                    const result = data.results[0];
+                    if (result.kb_id === null) {
+                        addMessage(result.answer, 'ai');
+                    } else {
+                        addMultiKBMessage(data.results);
+                    }
+                } else {
+                    // Multiple KB results
+                    addMultiKBMessage(data.results);
+                }
+            } else if (data.answer) {
+                // Legacy single answer format (backward compatibility)
+                addMessage(data.answer, 'ai');
+            }
 
             // Reload conversations list
             loadConversations();
@@ -578,6 +595,44 @@
             sendButton.disabled = false;
             messageInput.focus();
         }
+    }
+
+    function addMultiKBMessage(results) {
+        // Hide initial greeting if it exists
+        const initialGreeting = document.getElementById('initialGreeting');
+        if (initialGreeting) {
+            initialGreeting.style.display = 'none';
+        }
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar ai';
+        avatar.innerHTML = '<i class="fas fa-cube"></i>';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'message-bubble';
+
+        // Build multi-KB response HTML
+        let html = '';
+        results.forEach((result, index) => {
+            if (index > 0) {
+                html += '<hr style="margin: 1rem 0; border: none; border-top: 1px solid rgba(0,0,0,0.1);"/>';
+            }
+            html += `<div style="margin-bottom: ${index < results.length - 1 ? '0.5rem' : '0'}">`;
+            html += `<div style="font-weight: 600; color: #d46a38; margin-bottom: 0.5rem; font-size: 0.85rem;">${escapeHtml(result.kb_name)}</div>`;
+            html += `<div style="white-space: pre-wrap;">${escapeHtml(result.answer)}</div>`;
+            html += '</div>';
+        });
+
+        bubble.innerHTML = html;
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(bubble);
+
+        chatMessages.appendChild(messageDiv);
+        scrollToBottom();
     }
 
     function addMessage(text, type) {
