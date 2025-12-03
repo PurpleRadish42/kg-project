@@ -85,6 +85,137 @@
         .sidebar-delete-btn:hover {
             color: #d46a38;
         }
+
+        /* User Profile Dropdown Styles */
+        .user-profile {
+            position: relative;
+        }
+
+        .user-profile-trigger {
+            cursor: pointer;
+            transition: background 0.2s ease;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+        }
+
+        .user-profile-trigger:hover {
+            background: rgba(212, 106, 56, 0.08);
+        }
+
+        .user-profile-trigger:active {
+            background: rgba(212, 106, 56, 0.12);
+        }
+
+        .user-profile-dropdown {
+            display: none;
+            position: absolute;
+            bottom: 80px;
+            left: 16px;
+            min-width: 240px;
+            max-width: 340px; /* Increased max-width to allow extension */
+            width: max-content; /* Use max-content to fit text */
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            overflow: hidden;
+            animation: slideUp 0.2s ease;
+        }
+
+        .user-profile-dropdown.show {
+            display: block;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-profile-dropdown-header {
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+            min-width: 0;
+        }
+
+        .avatar-large {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d46a38 0%, #b85a2e 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex-grow: 1;
+            min-width: 0;
+            max-width: 100%; /* Let flex container constrain it */
+        }
+
+        .user-name {
+            font-family: var(--font-serif);
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .user-email {
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            color: #8b8680;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        .user-profile-dropdown-divider {
+            height: 1px;
+            background: rgba(0, 0, 0, 0.08);
+            margin: 0;
+        }
+
+        .user-profile-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.25rem;
+            color: #d32f2f;
+            text-decoration: none;
+            transition: background 0.2s ease;
+            font-family: var(--font-sans);
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .user-profile-dropdown-item:hover {
+            background: rgba(211, 47, 47, 0.08);
+            color: #d32f2f;
+        }
+
+        .user-profile-dropdown-item i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
@@ -127,19 +258,50 @@
 
             <div class="user-profile">
                 {% if current_user.is_authenticated %}
-                <div class="d-flex align-items-center px-3 mb-2">
-                    <div class="avatar me-2 rounded bg-secondary text-white d-flex align-items-center justify-content-center"
-                        style="width: 32px; height: 32px;">
-                        {{ current_user.username[0].upper() }}
-                    </div>
-                    <div class="text-truncate">
-                        <small class="d-block text-muted">Logged in as</small>
-                        <strong>{{ current_user.username }}</strong>
+                <div class="user-profile-trigger" id="userProfileTrigger">
+                    <div class="d-flex align-items-center px-3 py-2">
+                        <div class="avatar me-2 rounded bg-secondary text-white d-flex align-items-center justify-content-center"
+                            style="width: 36px; height: 36px; font-size: 1rem;">
+                            {% if current_user.full_name %}
+                                {{ current_user.full_name[0].upper() }}
+                            {% else %}
+                                {{ current_user.username[0].upper() }}
+                            {% endif %}
+                        </div>
+                        <div class="text-truncate flex-grow-1" style="min-width: 0;">
+                            <small class="d-block text-muted" style="font-size: 0.7rem;">Logged in as</small>
+                            <strong style="font-size: 0.9rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" 
+                                    title="{{ current_user.full_name if current_user.full_name else current_user.username }}">
+                                {{ current_user.full_name if current_user.full_name else current_user.username }}
+                            </strong>
+                        </div>
+                        <i class="fas fa-chevron-up ms-2" style="font-size: 0.7rem; color: #8b8680; flex-shrink: 0;"></i>
                     </div>
                 </div>
-                <a class="nav-item text-danger" href="{{ url_for('auth.logout') }}">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+                
+                <!-- User Profile Dropdown -->
+                <div class="user-profile-dropdown" id="userProfileDropdown">
+                    <div class="user-profile-dropdown-header">
+                        <div class="avatar-large">
+                            {% if current_user.full_name %}
+                                {{ current_user.full_name[0].upper() }}
+                            {% else %}
+                                {{ current_user.username[0].upper() }}
+                            {% endif %}
+                        </div>
+                        <div class="user-info">
+                            <div class="user-name" title="{{ current_user.full_name if current_user.full_name else current_user.username }}">
+                                {{ current_user.full_name if current_user.full_name else current_user.username }}
+                            </div>
+                            <div class="user-email" title="{{ current_user.email }}">{{ current_user.email }}</div>
+                        </div>
+                    </div>
+                    <div class="user-profile-dropdown-divider"></div>
+                    <a class="user-profile-dropdown-item" href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Log out</span>
+                    </a>
+                </div>
                 {% else %}
                 <a class="nav-item" href="{{ url_for('auth.login') }}">
                     <i class="fas fa-sign-in-alt"></i> Login
@@ -221,6 +383,42 @@
         });
         {% endif %}
         {% endwith %}
+    </script>
+    <script>
+        // User Profile Dropdown Toggle
+        {% if current_user.is_authenticated %}
+        document.addEventListener('DOMContentLoaded', function() {
+            const trigger = document.getElementById('userProfileTrigger');
+            const dropdown = document.getElementById('userProfileDropdown');
+            const chevron = trigger.querySelector('.fa-chevron-up');
+            
+            // Toggle dropdown on click
+            trigger.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+                chevron.classList.toggle('fa-chevron-up');
+                chevron.classList.toggle('fa-chevron-down');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target) && !trigger.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                    chevron.classList.remove('fa-chevron-down');
+                    chevron.classList.add('fa-chevron-up');
+                }
+            });
+            
+            // Prevent dropdown from closing when clicking inside it
+            dropdown.addEventListener('click', function(e) {
+                // Allow logout link to work
+                if (e.target.closest('a')) {
+                    return;
+                }
+                e.stopPropagation();
+            });
+        });
+        {% endif %}
     </script>
     <script>
         // Load conversations in sidebar - works on all pages

@@ -9,11 +9,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 class User(UserMixin):
     """User model for Flask-Login"""
     
-    def __init__(self, user_id, username, email, password_hash=None):
+    def __init__(self, user_id, username, email, password_hash=None, full_name=None):
         self.id = user_id
         self.username = username
         self.email = email
         self.password_hash = password_hash
+        self.full_name = full_name
+    
+    def get_first_name(self):
+        """Get the first name from full_name, or fallback to username"""
+        if self.full_name:
+            return self.full_name.split()[0]
+        return self.username
     
     def set_password(self, password):
         """Hash and set the password"""
@@ -21,6 +28,8 @@ class User(UserMixin):
     
     def check_password(self, password):
         """Check if the provided password matches the hash"""
+        if self.password_hash is None:
+            return False
         return check_password_hash(self.password_hash, password)
     
     def __repr__(self):

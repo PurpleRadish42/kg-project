@@ -89,3 +89,85 @@ def logout():
     flash("You have been logged out.", "success")
     return redirect(url_for("web.index"))
 
+
+
+@bp.route("/google")
+def google_login():
+    """Initiate Google OAuth flow"""
+    from app.services.oauth import get_google_oauth
+    from flask import url_for
+    
+    google = get_google_oauth()
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@bp.route("/google/callback")
+def google_callback():
+    """Handle Google OAuth callback"""
+    from app.services.oauth import get_google_oauth
+    
+    google = get_google_oauth()
+    
+    try:
+        # Get OAuth token
+        token = google.authorize_access_token()
+        
+        # Get user info from Google
+        user_info = token.get('userinfo')
+        if not user_info:
+            # Fallback: parse ID token
+            user_info = google.parse_id_token(token)
+        
+        google_id = user_info.get('sub')
+        email = user_info.get('email')
+        name = user_info.get('name', '')
+        picture = user_info.get('picture', '')
+        
+        if not google_id or not email:
+            flash("Failed to get user information from Google.", "error")
+            return redirect(url_for('auth.login'))
+        
+        db_service = get_db_service()
+        
+        # Check if user already exists with this Google ID
+        user = db_service.get_user_by_google_id(google_id)
+        
+        if user:
+            # User exists, log them in
+            login_user(user, remember=True)
+            flash(f"Welcome back, {user.username}!", "success")
+            return redirect(url_for('web.index'))
+        
+        # Check if user exists with this email
+        existing_user = db_service.get_user_by_email_oauth(email)
+        
+        if existing_user:
+            # Auto-link Google account to existing user
+            user = db_service.link_google_account(existing_user.id, google_id, picture)
+            if user:
+                login_user(user, remember=True)
+                flash(f"Welcome back, {user.username}! Your Google account has been linked.", "success")
+                return redirect(url_for('web.index'))
+            else:
+                flash("Failed to link Google account. Please try again.", "error")
+                return redirect(url_for('auth.login'))
+        
+        # Create new user with Google credentials
+        user = db_service.create_google_user(google_id, email, name, picture)
+        
+        if user:
+            login_user(user, remember=True)
+            flash(f"Welcome to Knowledge Graph AI, {user.username}!", "success")
+            return redirect(url_for('web.index'))
+        else:
+            flash("Failed to create account. Please try again.", "error")
+            return redirect(url_for('auth.register'))
+    
+    except Exception as e:
+        print(f"Error during Google OAuth: {e}")
+        import traceback
+        traceback.print_exc()
+        flash("An error occurred during Google sign-in. Please try again.", "error")
+        return redirect(url_for('auth.login'))
+
