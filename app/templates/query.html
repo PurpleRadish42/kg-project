@@ -427,8 +427,8 @@
     const typingIndicator = document.getElementById('typingIndicator');
     const conversationListContainer = document.getElementById('conversationListContainer');
     const newChatBtn = document.getElementById('newChatBtn');
-    const userInitial = '{{ current_user.username[0].upper() if current_user.is_authenticated else "U" }}';
-    const userName = '{{ current_user.username if current_user.is_authenticated else "there" }}';
+    const userInitial = '{{ (current_user.full_name[0] if current_user.full_name else current_user.username[0]).upper() if current_user.is_authenticated else "U" }}';
+    const userName = '{{ current_user.get_first_name() if current_user.is_authenticated else "there" }}';
 
     let currentConversationId = null;
 

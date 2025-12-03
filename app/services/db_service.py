@@ -54,10 +54,57 @@ class DatabaseService:
                         id SERIAL PRIMARY KEY,
                         username VARCHAR(80) UNIQUE NOT NULL,
                         email VARCHAR(120) UNIQUE NOT NULL,
-                        password_hash VARCHAR(255) NOT NULL,
+                        password_hash VARCHAR(255),
+                        full_name VARCHAR(255),
+                        google_id VARCHAR(255) UNIQUE,
+                        profile_picture VARCHAR(512),
+                        auth_provider VARCHAR(50) DEFAULT 'local',
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """)
+                
+                # Make password_hash nullable for OAuth users
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ALTER COLUMN password_hash DROP NOT NULL
+                    """)
+                except Exception as e:
+                    print(f"Note: password_hash column already nullable or error: {e}")
+                
+                # Add full_name column if it doesn't exist
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS full_name VARCHAR(255)
+                    """)
+                except Exception as e:
+                    print(f"Note: full_name column already exists or error: {e}")
+                
+                # Add Google OAuth columns if they don't exist (migration)
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE
+                    """)
+                except Exception as e:
+                    print(f"Note: google_id column already exists or error: {e}")
+                
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(512)
+                    """)
+                except Exception as e:
+                    print(f"Note: profile_picture column already exists or error: {e}")
+                
+                try:
+                    cursor.execute("""
+                        ALTER TABLE users 
+                        ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'local'
+                    """)
+                except Exception as e:
+                    print(f"Note: auth_provider column already exists or error: {e}")
                 
                 # Create knowledge_bases table
                 cursor.execute("""
@@ -99,12 +146,12 @@ class DatabaseService:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, username, email, password_hash FROM users WHERE id = %s",
+                    "SELECT id, username, email, password_hash, full_name FROM users WHERE id = %s",
                     (user_id,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    return User(row[0], row[1], row[2], row[3])
+                    return User(row[0], row[1], row[2], row[3], row[4])
                 return None
         finally:
             self.connection_pool.putconn(conn)
@@ -115,12 +162,12 @@ class DatabaseService:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, username, email, password_hash FROM users WHERE username = %s",
+                    "SELECT id, username, email, password_hash, full_name FROM users WHERE username = %s",
                     (username,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    return User(row[0], row[1], row[2], row[3])
+                    return User(row[0], row[1], row[2], row[3], row[4])
                 return None
         finally:
             self.connection_pool.putconn(conn)
@@ -131,12 +178,12 @@ class DatabaseService:
         try:
             with conn.cursor() as cursor:
                 cursor.execute(
-                    "SELECT id, username, email, password_hash FROM users WHERE email = %s",
+                    "SELECT id, username, email, password_hash, full_name FROM users WHERE email = %s",
                     (email,)
                 )
                 row = cursor.fetchone()
                 if row:
-                    return User(row[0], row[1], row[2], row[3])
+                    return User(row[0], row[1], row[2], row[3], row[4])
                 return None
         finally:
             self.connection_pool.putconn(conn)
@@ -211,6 +258,164 @@ class DatabaseService:
                 deleted = cursor.rowcount > 0
                 conn.commit()
                 return deleted
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def get_user_by_google_id(self, google_id: str):
+        """Get user by Google ID"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT id, username, email, password_hash, full_name
+                    FROM users
+                    WHERE google_id = %s
+                """, (google_id,))
+                result = cursor.fetchone()
+                
+                if result:
+                    return User(
+                        user_id=result[0],
+                        username=result[1],
+                        email=result[2],
+                        password_hash=result[3],
+                        full_name=result[4]
+                    )
+                return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def get_user_by_email_oauth(self, email: str):
+        """Get user by email (for Google OAuth linking)"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT id, username, email, password_hash, full_name
+                    FROM users
+                    WHERE email = %s
+                """, (email,))
+                result = cursor.fetchone()
+                
+                if result:
+                    return User(
+                        user_id=result[0],
+                        username=result[1],
+                        email=result[2],
+                        password_hash=result[3],
+                        full_name=result[4]
+                    )
+                return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def create_google_user(self, google_id: str, email: str, name: str, picture: str = None):
+        """Create a new user from Google OAuth"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                # Generate username from name or email
+                # Prefer using the actual name from Google
+                if name and name.strip():
+                    # Use the name, replacing spaces with underscores
+                    username = name.strip().replace(' ', '_').lower()
+                else:
+                    # Fallback to email prefix if name is not available
+                    username = email.split('@')[0]
+                
+                # Ensure username is unique
+                base_username = username
+                counter = 1
+                while True:
+                    cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
+                    if not cursor.fetchone():
+                        break
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                cursor.execute("""
+                    INSERT INTO users (username, email, full_name, google_id, profile_picture, auth_provider)
+                    VALUES (%s, %s, %s, %s, %s, 'google')
+                    RETURNING id, username, email, password_hash, full_name
+                """, (username, email, name, google_id, picture))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    return User(
+                        user_id=result[0],
+                        username=result[1],
+                        email=result[2],
+                        password_hash=result[3],
+                        full_name=result[4]
+                    )
+                return None
+        except Exception as e:
+            conn.rollback()
+            print(f"Error creating Google user: {e}")
+            return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def link_google_account(self, user_id: int, google_id: str, picture: str = None):
+        """Link Google account to existing user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users
+                    SET google_id = %s, profile_picture = %s
+                    WHERE id = %s
+                    RETURNING id, username, email, password_hash, full_name
+                """, (google_id, picture, user_id))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    return User(
+                        user_id=result[0],
+                        username=result[1],
+                        email=result[2],
+                        password_hash=result[3],
+                        full_name=result[4]
+                    )
+                return None
+        except Exception as e:
+            conn.rollback()
+            print(f"Error linking Google account: {e}")
+            return None
+        finally:
+            self.connection_pool.putconn(conn)
+    
+    def update_username(self, user_id: int, new_username: str):
+        """Update username for an existing user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE users
+                    SET username = %s
+                    WHERE id = %s
+                    RETURNING id, username, email, password_hash, full_name
+                """, (new_username, user_id))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                
+                if result:
+                    return User(
+                        user_id=result[0],
+                        username=result[1],
+                        email=result[2],
+                        password_hash=result[3],
+                        full_name=result[4]
+                    )
+                return None
+        except psycopg2.IntegrityError:
+            conn.rollback()
+            return None
         finally:
             self.connection_pool.putconn(conn)
     

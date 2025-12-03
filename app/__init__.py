@@ -20,6 +20,10 @@ def create_app(config_name="default"):
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to access this page."
     
+    # Initialize OAuth
+    from app.services.oauth import init_oauth
+    init_oauth(app)
+    
     # User loader for Flask-Login
     @login_manager.user_loader
     def load_user(user_id):

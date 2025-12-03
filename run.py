@@ -5,6 +5,10 @@ Main entry point for the Knowledge Graph Flask application
 
 from app import create_app
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Determine the configuration based on environment
 config_name = os.getenv("FLASK_ENV", "development")
@@ -17,5 +21,3 @@ if __name__ == "__main__":
         port=int(os.getenv("FLASK_PORT", 9000)),
         debug=app.config["DEBUG"]
     )
-
-
