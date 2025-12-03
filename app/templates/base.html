@@ -109,11 +109,12 @@
         .user-profile-dropdown {
             display: none;
             position: absolute;
-            bottom: 80px;
-            left: 16px;
+            bottom: 100%; /* Position exactly above the trigger */
+            left: 0;     /* Align perfectly with the left edge */
+            margin-bottom: 8px; /* Small gap between trigger and popup */
             min-width: 240px;
-            max-width: 340px; /* Increased max-width to allow extension */
-            width: max-content; /* Use max-content to fit text */
+            max-width: 340px;
+            width: max-content;
             background: white;
             border-radius: 12px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
