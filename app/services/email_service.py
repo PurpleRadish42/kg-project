@@ -54,8 +54,11 @@ def create_otp_email_html(otp, user_name=None):
                     <!-- Header -->
                     <tr>
                         <td align="center" style="padding-bottom: 32px;">
-                            <div style="font-family: Georgia, 'Times New Roman', serif; font-size: 28px; font-weight: 600; color: #1A1A1A;">
-                                <span style="color: #D97757;">📦</span> KG AI
+                            <div style="display: inline-flex; align-items: center; gap: 8px; font-family: Georgia, 'Times New Roman', serif; font-size: 28px; font-weight: 600; color: #1A1A1A;">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke="#D97757" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <span>KG AI</span>
                             </div>
                         </td>
                     </tr>
@@ -68,7 +71,7 @@ def create_otp_email_html(otp, user_name=None):
                                     <td style="padding: 40px 36px;">
                                         <!-- Greeting -->
                                         <h1 style="margin: 0 0 8px 0; font-family: Georgia, 'Times New Roman', serif; font-size: 24px; font-weight: 500; color: #1A1A1A;">
-                                            Hey {display_name}! 👋
+                                            Hey {display_name}!
                                         </h1>
                                         <p style="margin: 0 0 32px 0; font-size: 16px; color: #5A5A5A; line-height: 1.6;">
                                             Enter this code to verify your email and get started with Knowledge Graph AI.
@@ -82,15 +85,15 @@ def create_otp_email_html(otp, user_name=None):
                                         </div>
                                         
                                         <!-- Timer Notice -->
-                                        <div style="display: flex; align-items: center; background-color: #FFF8F5; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px;">
+                                        <div style="background-color: #FFF8F5; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; text-align: center;">
                                             <span style="font-size: 14px; color: #B85A2E;">
-                                                ⏱️ This code expires in <strong>3 minutes</strong>
+                                                This code expires in <strong>3 minutes</strong>
                                             </span>
                                         </div>
                                         
                                         <!-- Security Notice -->
                                         <p style="margin: 0; font-size: 13px; color: #8B8680; line-height: 1.5;">
-                                            🔒 <strong>Security tip:</strong> Never share this code with anyone. Our team will never ask for it.
+                                            <strong>Security tip:</strong> Never share this code with anyone. Our team will never ask for it.
                                         </p>
                                     </td>
                                 </tr>
@@ -136,7 +139,7 @@ Security tip: Never share this code with anyone. Our team will never ask for it.
 
 Didn't request this code? You can safely ignore this email.
 
-© 2024 Knowledge Graph AI
+(c) 2024 Knowledge Graph AI
 """
     return text
 
@@ -158,7 +161,7 @@ def send_otp_email(to_email, otp, user_name=None):
         
         # Create message
         message = MIMEMultipart("alternative")
-        message["Subject"] = "🔐 Your KG AI Verification Code"
+        message["Subject"] = "Your KG AI Verification Code"
         message["From"] = f"KG AI <{smtp_email}>"
         message["To"] = to_email
         

@@ -105,7 +105,12 @@
         align-items: center;
         justify-content: center;
         margin: 0 auto 1.5rem;
-        font-size: 2rem;
+        color: var(--accent-color);
+    }
+    
+    .verify-icon svg {
+        width: 32px;
+        height: 32px;
     }
 </style>
 {% endblock %}
@@ -116,7 +121,9 @@
         <div class="card-body p-4">
             <div class="text-center">
                 <div class="verify-icon">
-                    📧
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
                 </div>
                 <h1 class="h3 mb-2">Check your email</h1>
                 <p class="text-muted mb-3">We've sent a 6-digit verification code to</p>
