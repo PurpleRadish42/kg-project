@@ -211,39 +211,30 @@ def login():
         return redirect(url_for("web.index"))
     
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        identifier = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         remember = request.form.get("remember", False) == "on"
         
-        if not username or not password:
-            flash("Please provide username and password.", "error")
+        if not identifier or not password:
+            flash("Please provide username/email and password.", "error")
             return render_template("auth/login.html")
         
-        # Authenticate user
+        # Authenticate user - try username first, then email
         db_service = get_db_service()
-        user = db_service.get_user_by_username(username)
+        user = db_service.get_user_by_username(identifier)
+        
+        # If not found by username, try email
+        if not user:
+            user = db_service.get_user_by_email_oauth(identifier)
         
         if user and user.check_password(password):
-            # Check if email is verified (only for local auth, not Google)
-            if not user.email_verified and user.password_hash:
-                # Email not verified - redirect to OTP verification
-                session['pending_verification_user_id'] = user.id
-                session['pending_verification_email'] = user.email
-                
-                # Send new OTP
-                if send_verification_otp(user, db_service):
-                    flash("Please verify your email first. We've sent a new code.", "info")
-                else:
-                    flash("Please verify your email. Check your inbox for the verification code.", "info")
-                
-                return redirect(url_for("auth.verify_otp"))
-            
+            # Login successful - no email verification required for login
             login_user(user, remember=remember)
             flash("You've successfully logged in!", "success")
             next_page = request.args.get("next")
             return redirect(next_page) if next_page else redirect(url_for("web.index"))
         else:
-            flash("Invalid username or password.", "error")
+            flash("Invalid username/email or password.", "error")
             return render_template("auth/login.html")
     
     return render_template("auth/login.html")
