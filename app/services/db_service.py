@@ -466,6 +466,29 @@ class DatabaseService:
         finally:
             self.connection_pool.putconn(conn)
     
+    def update_user_password(self, user_id: int, new_password: str):
+        """Update password for an existing user"""
+        conn = self.connection_pool.getconn()
+        try:
+            with conn.cursor() as cursor:
+                password_hash = generate_password_hash(new_password)
+                cursor.execute("""
+                    UPDATE users
+                    SET password_hash = %s
+                    WHERE id = %s
+                    RETURNING id
+                """, (password_hash, user_id))
+                
+                result = cursor.fetchone()
+                conn.commit()
+                return result is not None
+        except Exception as e:
+            conn.rollback()
+            print(f"Error updating password: {e}")
+            return False
+        finally:
+            self.connection_pool.putconn(conn)
+    
     # OTP Methods
     def save_otp(self, user_id: int, otp_hash: str, expires_at):
         """Save OTP hash and expiry for a user"""

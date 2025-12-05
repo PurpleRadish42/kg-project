@@ -5,8 +5,8 @@ Authentication routes
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app.services.db_service import get_db_service
-from app.services.email_service import generate_otp, hash_otp, verify_otp_hash, get_otp_expiry, send_otp_email
-from datetime import datetime
+from app.services.email_service import generate_otp, hash_otp, verify_otp_hash, get_otp_expiry, send_otp_email, send_password_reset_email
+from datetime import datetime, timedelta
 
 bp = Blueprint("auth", __name__)
 
@@ -211,39 +211,30 @@ def login():
         return redirect(url_for("web.index"))
     
     if request.method == "POST":
-        username = request.form.get("username", "").strip()
+        identifier = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         remember = request.form.get("remember", False) == "on"
         
-        if not username or not password:
-            flash("Please provide username and password.", "error")
+        if not identifier or not password:
+            flash("Please provide username/email and password.", "error")
             return render_template("auth/login.html")
         
-        # Authenticate user
+        # Authenticate user - try username first, then email
         db_service = get_db_service()
-        user = db_service.get_user_by_username(username)
+        user = db_service.get_user_by_username(identifier)
+        
+        # If not found by username, try email
+        if not user:
+            user = db_service.get_user_by_email_oauth(identifier)
         
         if user and user.check_password(password):
-            # Check if email is verified (only for local auth, not Google)
-            if not user.email_verified and user.password_hash:
-                # Email not verified - redirect to OTP verification
-                session['pending_verification_user_id'] = user.id
-                session['pending_verification_email'] = user.email
-                
-                # Send new OTP
-                if send_verification_otp(user, db_service):
-                    flash("Please verify your email first. We've sent a new code.", "info")
-                else:
-                    flash("Please verify your email. Check your inbox for the verification code.", "info")
-                
-                return redirect(url_for("auth.verify_otp"))
-            
+            # Login successful - no email verification required for login
             login_user(user, remember=remember)
             flash("You've successfully logged in!", "success")
             next_page = request.args.get("next")
             return redirect(next_page) if next_page else redirect(url_for("web.index"))
         else:
-            flash("Invalid username or password.", "error")
+            flash("Invalid username/email or password.", "error")
             return render_template("auth/login.html")
     
     return render_template("auth/login.html")
@@ -256,6 +247,244 @@ def logout():
     logout_user()
     flash("You have been logged out.", "success")
     return redirect(url_for("web.index"))
+
+
+@bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    """Request password reset"""
+    if current_user.is_authenticated:
+        return redirect(url_for("web.index"))
+    
+    if request.method == "POST":
+        identifier = request.form.get("identifier", "").strip()
+        
+        if not identifier:
+            flash("Please provide your username or email.", "error")
+            return render_template("auth/forgot_password.html")
+        
+        db_service = get_db_service()
+        
+        # Try to find user by username or email
+        user = db_service.get_user_by_username(identifier)
+        if not user:
+            user = db_service.get_user_by_email_oauth(identifier)
+        
+        if user:
+            # Check if user has a password (not Google-only account)
+            if not user.password_hash:
+                flash("This account uses Google sign-in. Please use 'Continue with Google' to login.", "error")
+                return render_template("auth/forgot_password.html")
+            
+            # Generate and send OTP
+            otp = generate_otp()
+            otp_hash = hash_otp(otp)
+            
+            # Use 3 minutes expiry for password reset
+            expires_at = datetime.utcnow() + timedelta(minutes=3)
+            
+            # Save OTP to database
+            db_service.save_otp(user.id, otp_hash, expires_at)
+            
+            # Send password reset email
+            user_name = user.full_name.split()[0] if user.full_name else user.username
+            success = send_password_reset_email(user.email, otp, user_name)
+            
+            if success:
+                # Store user_id in session for password reset
+                session['password_reset_user_id'] = user.id
+                session['password_reset_email'] = user.email
+                flash("We've sent a password reset code to your email.", "success")
+                return redirect(url_for("auth.verify_reset_otp"))
+            else:
+                flash("Failed to send reset email. Please try again.", "error")
+        else:
+            # Don't reveal if user exists or not (security best practice)
+            flash("If an account exists with that information, we've sent a password reset code.", "info")
+            return render_template("auth/forgot_password.html")
+    
+    return render_template("auth/forgot_password.html")
+
+
+@bp.route("/verify-reset-otp", methods=["GET", "POST"])
+def verify_reset_otp():
+    """Verify OTP for password reset"""
+    # Check if there's a pending password reset
+    user_id = session.get('password_reset_user_id')
+    email = session.get('password_reset_email')
+    
+    if not user_id:
+        flash("No pending password reset. Please request one first.", "error")
+        return redirect(url_for("auth.forgot_password"))
+    
+    db_service = get_db_service()
+    user = db_service.get_user_by_id(user_id)
+    
+    if not user:
+        session.pop('password_reset_user_id', None)
+        session.pop('password_reset_email', None)
+        flash("User not found. Please try again.", "error")
+        return redirect(url_for("auth.forgot_password"))
+    
+    # Get OTP config
+    max_attempts = current_app.config.get("OTP_MAX_ATTEMPTS", 5)
+    
+    if request.method == "POST":
+        otp_input = request.form.get("otp", "").strip()
+        
+        # Validation
+        if not otp_input or len(otp_input) != 6:
+            flash("Please enter a valid 6-digit code.", "error")
+            return render_template("auth/verify_reset_otp.html", email=email)
+        
+        # Get stored OTP data
+        otp_data = db_service.get_otp_data(user_id)
+        
+        if not otp_data or not otp_data['otp_hash']:
+            flash("No reset code found. Please request a new one.", "error")
+            return render_template("auth/verify_reset_otp.html", email=email, can_resend=True)
+        
+        # Check if OTP expired
+        if otp_data['expires_at'] and datetime.utcnow() > otp_data['expires_at']:
+            db_service.clear_otp(user_id)
+            flash("Reset code expired. Please request a new one.", "error")
+            return render_template("auth/verify_reset_otp.html", email=email, can_resend=True, expired=True)
+        
+        # Check attempts
+        if otp_data['attempts'] >= max_attempts:
+            db_service.clear_otp(user_id)
+            flash("Too many failed attempts. Please request a new code.", "error")
+            return render_template("auth/verify_reset_otp.html", email=email, can_resend=True, max_attempts_reached=True)
+        
+        # Verify OTP
+        if verify_otp_hash(otp_input, otp_data['otp_hash']):
+            # Success! Mark OTP as verified and redirect to password reset
+            session['otp_verified'] = True
+            flash("Code verified! Now set your new password.", "success")
+            return redirect(url_for("auth.reset_password"))
+        else:
+            # Wrong OTP - increment attempts
+            attempts = db_service.increment_otp_attempts(user_id)
+            remaining = max_attempts - attempts
+            
+            if remaining > 0:
+                flash(f"Incorrect code. {remaining} attempt{'s' if remaining > 1 else ''} remaining.", "error")
+            else:
+                db_service.clear_otp(user_id)
+                flash("Too many failed attempts. Please request a new code.", "error")
+                return render_template("auth/verify_reset_otp.html", email=email, can_resend=True, max_attempts_reached=True)
+    
+    # Get remaining time for display
+    otp_data = db_service.get_otp_data(user_id)
+    remaining_seconds = 0
+    if otp_data and otp_data['expires_at']:
+        remaining = (otp_data['expires_at'] - datetime.utcnow()).total_seconds()
+        remaining_seconds = max(0, int(remaining))
+    
+    return render_template("auth/verify_reset_otp.html", 
+                         email=email, 
+                         remaining_seconds=remaining_seconds,
+                         max_attempts=max_attempts)
+
+
+@bp.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    """Set new password after OTP verification"""
+    # Check if there's a pending password reset and OTP is verified
+    user_id = session.get('password_reset_user_id')
+    email = session.get('password_reset_email')
+    otp_verified = session.get('otp_verified', False)
+    
+    if not user_id or not otp_verified:
+        flash("Please verify your OTP first.", "error")
+        return redirect(url_for("auth.verify_reset_otp"))
+    
+    db_service = get_db_service()
+    user = db_service.get_user_by_id(user_id)
+    
+    if not user:
+        session.pop('password_reset_user_id', None)
+        session.pop('password_reset_email', None)
+        session.pop('otp_verified', None)
+        flash("User not found. Please try again.", "error")
+        return redirect(url_for("auth.forgot_password"))
+    
+    if request.method == "POST":
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        
+        # Validation
+        if not new_password or not confirm_password:
+            flash("Please provide both password fields.", "error")
+            return render_template("auth/reset_password.html", email=email)
+        
+        if new_password != confirm_password:
+            flash("Passwords do not match.", "error")
+            return render_template("auth/reset_password.html", email=email)
+        
+        if len(new_password) < 6:
+            flash("Password must be at least 6 characters long.", "error")
+            return render_template("auth/reset_password.html", email=email)
+        
+        # Update password
+        success = db_service.update_user_password(user_id, new_password)
+        
+        if success:
+            # Clear OTP and session
+            db_service.clear_otp(user_id)
+            session.pop('password_reset_user_id', None)
+            session.pop('password_reset_email', None)
+            session.pop('otp_verified', None)
+            
+            flash("Password reset successfully! You can now login with your new password.", "success")
+            return redirect(url_for("auth.login"))
+        else:
+            flash("Failed to update password. Please try again.", "error")
+    
+    return render_template("auth/reset_password.html", email=email)
+
+
+@bp.route("/resend-reset-otp", methods=["POST"])
+def resend_reset_otp():
+    """Resend OTP for password reset"""
+    user_id = session.get('password_reset_user_id')
+    
+    if not user_id:
+        flash("No pending password reset.", "error")
+        return redirect(url_for("auth.forgot_password"))
+    
+    db_service = get_db_service()
+    user = db_service.get_user_by_id(user_id)
+    
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for("auth.forgot_password"))
+    
+    # Check cooldown
+    cooldown = current_app.config.get("OTP_RESEND_COOLDOWN_SECONDS", 30)
+    can_resend, remaining = db_service.can_resend_otp(user_id, cooldown)
+    
+    if not can_resend:
+        flash(f"Please wait {remaining} seconds before requesting a new code.", "error")
+        return redirect(url_for("auth.verify_reset_otp"))
+    
+    # Generate and send new OTP
+    otp = generate_otp()
+    otp_hash = hash_otp(otp)
+    expires_at = datetime.utcnow() + timedelta(minutes=3)
+    
+    # Save OTP to database
+    db_service.save_otp(user.id, otp_hash, expires_at)
+    
+    # Send password reset email
+    user_name = user.full_name.split()[0] if user.full_name else user.username
+    success = send_password_reset_email(user.email, otp, user_name)
+    
+    if success:
+        flash("A new password reset code has been sent to your email.", "success")
+    else:
+        flash("Failed to send reset email. Please try again.", "error")
+    
+    return redirect(url_for("auth.verify_reset_otp"))
 
 
 
