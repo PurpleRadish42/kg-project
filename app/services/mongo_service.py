@@ -119,13 +119,18 @@ class MongoService:
         result = self.db.messages.insert_one(message)
         
         # Update conversation metadata
+        update_fields = {
+            "updated_at": now,
+        }
+        
+        # Only set last_message_preview for user messages (to avoid JSON data from AI)
+        if role == "user":
+            update_fields["last_message_preview"] = content[:100]
+        
         self.db.conversations.update_one(
             {"_id": ObjectId(conversation_id)},
             {
-                "$set": {
-                    "updated_at": now,
-                    "last_message_preview": content[:100]  # First 100 chars
-                },
+                "$set": update_fields,
                 "$inc": {"message_count": 1}
             }
         )
