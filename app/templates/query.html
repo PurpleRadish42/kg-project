@@ -728,7 +728,31 @@
 
                 // Render messages
                 data.messages.forEach(msg => {
-                    addMessage(msg.content, msg.role === 'user' ? 'user' : 'ai');
+                    if (msg.role === 'user') {
+                        addMessage(msg.content, 'user');
+                    } else {
+                        // AI message - try to parse if it's JSON (multi-KB format)
+                        let content = msg.content;
+                        try {
+                            const parsed = JSON.parse(content);
+                            if (Array.isArray(parsed)) {
+                                // It's a multi-KB response array
+                                if (parsed.length === 1 && parsed[0].kb_id === null) {
+                                    // Single result with null kb_id - just show the answer
+                                    addMessage(parsed[0].answer, 'ai');
+                                } else {
+                                    // Multiple KB results - show with KB headers
+                                    addMultiKBMessage(parsed);
+                                }
+                            } else {
+                                // Not an array, just display as is
+                                addMessage(content, 'ai');
+                            }
+                        } catch (e) {
+                            // Not JSON, just display as regular message
+                            addMessage(content, 'ai');
+                        }
+                    }
                 });
 
                 // Update active state in sidebar
