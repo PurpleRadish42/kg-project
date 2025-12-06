@@ -154,7 +154,3 @@ NEO4J_PASSWORD=your_password                          # Neo4j password
 NEO4J_DATABASE=neo4j                                  # Database name (usually 'neo4j')
 SECRET_KEY=your-secret-key                            # Flask secret key
 ```
-
-## License
-
-MIT
