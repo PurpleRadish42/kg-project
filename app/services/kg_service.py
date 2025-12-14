@@ -252,6 +252,7 @@ Return ONLY the JSON object, no additional text."""
         # NEW APPROACH: Gather data from ALL KBs and synthesize into ONE natural answer
         all_graph_data = []
         all_nested_data = []
+        all_source_documents = []
         
         # Collect data from all KBs
         for kb in user_kbs:
@@ -310,9 +311,23 @@ Return ONLY the JSON object, no additional text."""
                         "hops": record["hops"],
                         "source_kb": kb_name
                     })
+                
+                # Also get the original source documents for full context
+                result = session.run("""
+                    MATCH (d:Document {user_id: $user_id, kb_id: $kb_id})
+                    RETURN d.text AS text, d.timestamp AS timestamp
+                    ORDER BY d.timestamp DESC
+                """, user_id=user_id, kb_id=kb_id)
+                
+                for record in result:
+                    all_source_documents.append({
+                        "text": record["text"],
+                        "timestamp": record["timestamp"],
+                        "source_kb": kb_name
+                    })
         
         # If no data across all KBs, return empty
-        if not all_graph_data and not all_nested_data:
+        if not all_graph_data and not all_nested_data and not all_source_documents:
             return [{
                 "kb_id": None,
                 "kb_name": "No Data",
@@ -321,12 +336,18 @@ Return ONLY the JSON object, no additional text."""
         
         # Format ALL the graph data for GPT to synthesize
         graph_context = json.dumps({
-            "direct_relationships": all_graph_data,
-            "nested_relationships": all_nested_data
+            "source_documents": all_source_documents,
+            "extracted_entities_and_relationships": all_graph_data,
+            "nested_location_relationships": all_nested_data
         }, indent=2)
         
         # Send everything to GPT for a SINGLE synthesized answer
-        prompt = f"""You are answering questions based on a knowledge graph database containing information from multiple knowledge bases.
+        prompt = f"""You are answering questions based on a personal knowledge graph database.
+
+The data is structured as:
+1. source_documents: The original raw text entries (MOST COMPLETE - use this as primary source)
+2. extracted_entities_and_relationships: Structured entities extracted from the text  
+3. nested_location_relationships: Location hierarchies
 
 Knowledge Graph Data:
 {graph_context}
@@ -334,14 +355,13 @@ Knowledge Graph Data:
 Question: {question}
 
 Instructions:
+- ALWAYS check the source_documents first - they contain the FULL original text with all details
+- Look for specific times, dates, appointments, locations, and events in the source text
 - Synthesize information from ALL sources into ONE natural, conversational answer
 - Be helpful and friendly, not robotic or formal
-- For counting questions ("How many..."), count across all data
-- For location questions ("Where is..."), list all locations found
-- Combine information naturally - speak like a helpful friend
 - Pay attention to timestamps - use the MOST RECENT information
-- Be specific with locations and details
-- If you don't have the information, say so simply
+- Be specific with locations, times, and details
+- If you find the answer in source_documents, USE IT even if it's not in the extracted entities
 
 Answer naturally:"""
 
