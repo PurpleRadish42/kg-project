@@ -1,5 +1,4 @@
-apiVersion: v1
-kind: apiVersion: apps/v1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kg-ai-app
@@ -15,10 +14,29 @@ spec:
     spec:
       containers:
       - name: kg-ai-app
-        image: <Image>
+        image: ghcr.io/purpleradish42/kg-ai:v2
         resources:
           limits:
-            memory: "128Mi"
+            memory: "512Mi"
+            cpu: "1000m"
+          requests:
+            memory: "256Mi"
             cpu: "500m"
         ports:
-        - containerPort: <Port>
+        - containerPort: 9000
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: kg-ai-lb
+spec:
+  selector:
+    app: kg-ai-app
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 9000
+
