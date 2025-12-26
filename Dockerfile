@@ -6,7 +6,7 @@ WORKDIR /app
 
 FROM base AS builder
 
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh -s -- --no-modify-path
+RUN curl -LsSf https://astral.sh/uv/install.sh | UV_NO_MODIFY_PATH=1 sh
 
 ENV PATH="/root/.local/bin:${PATH}"
 

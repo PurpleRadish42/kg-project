@@ -1,6 +1,8 @@
 .git
 .gitignore
 .venv
+.github
+k8s
 .DS_Store
 __pycache__
 mongo_backup
