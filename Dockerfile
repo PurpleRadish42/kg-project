@@ -21,4 +21,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 
 COPY . .
 
-CMD ["python", "run.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:9000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "run:app"]
