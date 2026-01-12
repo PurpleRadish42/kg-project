@@ -1,4 +1,4 @@
-name: kg-ai Docker build runner
+name: kg-ai Docker Image Build
 
 on:
   workflow_dispatch:
@@ -26,6 +26,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Create .env file from secrets
+        run: echo "${{ secrets.ENVS }}" > .env
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
